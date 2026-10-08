@@ -14,6 +14,7 @@ O porquê de cada escolha técnica, as alternativas descartadas e o preço pago 
 | D8 | [Hospedagem: Render grátis + Supabase](#d8-hospedagem-render-grátis--supabase) | Em vigor |
 | D9 | [Imagem do n8n pelo Docker Hub](#d9-imagem-do-n8n-pelo-docker-hub) | Em vigor |
 | D10 | [O n8n cria o próprio schema no banco](#d10-o-n8n-cria-o-próprio-schema-no-banco) | Em vigor |
+| D11 | [Prazo maior para o executor dos nós de código](#d11-prazo-maior-para-o-executor-dos-nós-de-código) | Em vigor |
 
 ---
 
@@ -80,12 +81,13 @@ O porquê de cada escolha técnica, as alternativas descartadas e o preço pago 
 
 ## D9. Imagem do n8n pelo Docker Hub
 **Contexto:** o primeiro build no Render falhou com `429 Too Many Requests` ao baixar `docker.n8n.io/n8nio/n8n:stable`. O registro do n8n limita downloads por IP, e o Render usa IPs compartilhados.
-**Decisão:** `FROM n8nio/n8n:stable` (mesma imagem oficial, publicada no Docker Hub).
-**Preço:** a tag `stable` muda com o tempo. Para evitar surpresas, fixe a versão (ver `OPERACAO.md`).
+**Decisão:** imagem oficial publicada no Docker Hub, com **versão fixa**: `FROM n8nio/n8n:2.42.5`. A tag `stable` mudaria a cada push, já que todo push refaz o deploy.
+**Preço:** atualizar o n8n vira uma ação manual (ver `OPERACAO.md` → Atualizar o n8n).
 
 ## D10. O n8n cria o próprio schema no banco
 **Contexto:** no primeiro deploy, o schema `n8n` tinha sido criado antes, à mão. O n8n conectou no banco, rodou `CREATE SCHEMA IF NOT EXISTS "n8n"` e **travou**: a resposta nunca chegou ao n8n, o processo ficou parado (CPU ~0, memória estável) e o Render derrubou o deploy por não abrir a porta. No código do driver (`@n8n/typeorm`), o próximo passo seria um `SELECT version()` na mesma conexão, que nunca foi executado.
-**Hipótese:** com o schema já existente, o Postgres responde com um aviso ("already exists, skipping"), e esse aviso, passando pelo pooler do Supabase, trava a conexão.
+**Causa provável:** com o schema já existente, o Postgres responde com um aviso ("already exists, skipping"), e esse aviso, passando pelo pooler do Supabase, trava a conexão.
+**Confirmação (08/10/2026):** sem o schema pré-criado, o n8n criou o `n8n`, rodou todas as migrações (148 tabelas) e abriu o editor. A única variável alterada foi a existência prévia do schema.
 **Decisão:** o schema criado à mão foi renomeado para `n8n_antigo` (vazio; pode ser apagado) e o usuário `n8n` ganhou permissão para criar schemas (`GRANT CREATE ON DATABASE postgres TO n8n`), de modo que o próprio n8n cria o `n8n`.
 **Como recriar o banco do zero (SQL Editor do Supabase):**
 ```sql
@@ -95,3 +97,9 @@ grant create on database postgres to n8n;
 alter role n8n set search_path = n8n;
 -- NÃO crie o schema n8n: deixe o n8n criar no primeiro start.
 ```
+
+## D11. Prazo maior para o executor dos nós de código
+**Contexto:** no n8n 2.x, os nós **Code** rodam num processo separado (*task runner*) que se conecta ao n8n com um token de 30 segundos. Na CPU mínima do Render free, o runner levou ~36 s para iniciar, e os logs mostravam em loop `Task runner connection attempt failed: invalid or expired grant token`. O editor abria normalmente, mas **todo nó Code falharia**, e os dois workflows dependem deles.
+**Decisão:** `N8N_RUNNERS_GRANT_TOKEN_TTL=180` nas variáveis do Render.
+**Preço:** nenhum. O token só vale para a conexão local entre o n8n e o próprio runner (127.0.0.1).
+**Lição:** "o editor abriu" não significa "está funcionando". Depois de cada deploy, confira os logs (ver `OPERACAO.md`).

@@ -75,6 +75,7 @@ A Naty tocou em "Está errado" ou não respondeu em 24h. Abra o evento pelo link
 | `password authentication failed for user "n8n"` | Senha errada na variável `DB_POSTGRESDB_PASSWORD` | Corrija no Render ou troque a senha (veja [Senhas e chaves](#senhas-e-chaves)). |
 | `ENOTFOUND` / `ENETUNREACH` no host do banco | Host errado, ou conexão direta (IPv6) em vez do pooler | Use o host do **Session pooler**, porta 5432, usuário `n8n.umbtzzxqcblurjthpydg`. |
 | `Tenant or user not found` | Usuário sem o sufixo `.umbtzzxqcblurjthpydg` | O pooler exige `usuario.ID-do-projeto`. |
+| `Task runner connection attempt failed: invalid or expired grant token` | O executor dos nós de código demorou mais que o prazo para iniciar (CPU fraca) | Aumentar `N8N_RUNNERS_GRANT_TOKEN_TTL` (hoje `180`). Sem o runner, **os nós Code falham** e os dois workflows param. |
 | `Out of memory` / `JavaScript heap out of memory` | 512 MB não bastaram | Se for raro, ignore (reinicia sozinho). Se for frequente, veja [Quando sair do plano grátis](#quando-sair-do-plano-grátis). |
 
 ### Google desconectado
@@ -95,15 +96,19 @@ Credenciais OAuth do Google podem expirar. No n8n: **Credentials** → "Google C
 
 ## Deploy e atualização do n8n
 
-- **Como o serviço é construído:** o Render clona este repositório e constrói o `Dockerfile` (`FROM n8nio/n8n:stable`). Toda a configuração vem das variáveis de ambiente do serviço.
-- **Deploy automático:** **todo push na `main`** refaz o deploy. O n8n fica alguns minutos fora do ar e pode subir numa versão mais nova (a tag `stable` muda).
-- **Atualizar o n8n de propósito:** Render → **Manual Deploy → Deploy latest commit**.
+- **Como o serviço é construído:** o Render clona este repositório e constrói o `Dockerfile` (`FROM n8nio/n8n:2.42.5`). Toda a configuração vem das variáveis de ambiente do serviço.
+- **Deploy automático:** **todo push na `main`** refaz o deploy, e o n8n fica alguns minutos fora do ar. A primeira subida num banco vazio leva ~5 min (migrações); as seguintes, ~2–4 min.
+- **Mudou uma variável de ambiente?** O Render refaz o deploy sozinho.
 
 ### Evitar redeploy a cada push
 Render → serviço → **Settings → Build & Deploy → Build Filters → Included Paths**: `Dockerfile`. Assim só uma mudança no `Dockerfile` refaz o deploy; documentação e workflows (que são importados à mão no n8n) não derrubam o serviço.
 
-### Fixar a versão do n8n
-Para não ser surpreendido por uma versão nova, troque no `Dockerfile` `n8nio/n8n:stable` por uma versão exata (ex.: `n8nio/n8n:2.35.7`) e atualize de propósito, testando antes.
+### Atualizar o n8n
+A versão está **fixada** no `Dockerfile` (`n8nio/n8n:2.42.5`). Para atualizar:
+1. Leia as notas da versão nova (docs.n8n.io → Release notes), procurando mudanças nos nós Gmail, Telegram, Code, HTTP Request e Schedule.
+2. Troque a versão no `Dockerfile`, faça o commit e o push. O deploy roda sozinho.
+3. Nos logs, confira `Version: …`, `Editor is now accessible` e a **ausência** de `Task runner connection attempt failed`.
+4. Rode o roteiro de testes do `SETUP.md` (passo 8).
 
 ### Health check
 Render → **Settings → Health Check Path**: `/healthz`. Com isso, o Render só troca a versão antiga pela nova quando a nova responde, e reinicia o n8n se ele travar.

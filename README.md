@@ -87,7 +87,7 @@ Detalhes nó a nó em [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md). O porquê de
 
 | Peça | Serviço | Plano | Observação |
 |---|---|---|---|
-| Motor de automação | **n8n 2.x** no **Render** (`naty-n8n.onrender.com`) | Grátis (512 MB) | Construído a partir do `Dockerfile` deste repositório |
+| Motor de automação | **n8n 2.42.5** no **Render** (`naty-n8n.onrender.com`) | Grátis (512 MB) | Construído a partir do `Dockerfile` deste repositório (versão fixada) |
 | Banco do n8n | **Supabase** Postgres (projeto `naty-n8n`, us-west-1) | Grátis (500 MB) | Usuário e schema `n8n` exclusivos, via Session pooler |
 | Manter acordado | **cron-job.org** → `GET /healthz` a cada 5 min | Grátis | Sem isso o Render desliga o n8n após 15 min |
 | IA de extração | **Groq** (`openai/gpt-oss-120b`, modo `strict`) | Grátis | Troca de modelo em `src/02_montar_requisicao.js` |

@@ -1,7 +1,7 @@
 # Hospedagem: Render (grátis) + Supabase (grátis)
 
 ```
-GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Dockerfile (n8nio/n8n:stable)
+GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Dockerfile (n8nio/n8n:2.42.5)
                                                    │
                                                    ▼
                               n8n em https://naty-n8n.onrender.com  (free, 512 MB)
@@ -20,7 +20,8 @@ GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Do
 | Endereço | https://naty-n8n.onrender.com |
 | Projeto Supabase | `naty-n8n` · ID `umbtzzxqcblurjthpydg` · região us-west-1 |
 | Usuário do banco | `n8n` (no pooler: `n8n.umbtzzxqcblurjthpydg`), com permissão para criar o próprio schema |
-| Schema | `n8n` (criado pelo n8n no primeiro start) · `n8n_antigo` é um resto vazio e pode ser apagado |
+| Schema | `n8n` (criado pelo n8n no primeiro start, 148 tabelas) · `n8n_antigo` é um resto vazio e pode ser apagado (`drop schema n8n_antigo;`) |
+| Versão do n8n | 2.42.5 (fixada no `Dockerfile`) |
 
 ## Por que cada peça
 
@@ -32,7 +33,8 @@ GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Do
 | `N8N_ENCRYPTION_KEY` fixa | O disco do Render é apagado a cada deploy/reinício. Sem a chave fixa, as credenciais salvas viram lixo. |
 | `NODE_OPTIONS=--max-old-space-size=380` | O plano grátis tem 512 MB; isso faz o n8n liberar memória antes de o Render matá-lo. |
 | Histórico de execuções de 3 dias | O banco grátis do Supabase tem 500 MB. |
-| Imagem do **Docker Hub** | O registro `docker.n8n.io` devolveu 429 nos builds do Render (ver `docs/DECISOES.md`, D9). |
+| Imagem do **Docker Hub**, versão fixa | O registro `docker.n8n.io` devolveu 429 nos builds do Render (ver `docs/DECISOES.md`, D9). Versão fixa evita atualização surpresa a cada push. |
+| `N8N_RUNNERS_GRANT_TOKEN_TTL=180` | Com a CPU mínima do plano grátis, o executor dos nós de código leva ~36 s para iniciar e perdia o prazo padrão de 30 s. Sem ele, **nenhum nó Code roda** (ver D11). |
 
 ## Variáveis de ambiente do serviço
 
@@ -60,6 +62,7 @@ Configuradas no Render (Environment). Os **valores secretos não ficam neste rep
 | `EXECUTIONS_DATA_PRUNE` | `true` |
 | `EXECUTIONS_DATA_MAX_AGE` | `72` |
 | `N8N_DIAGNOSTICS_ENABLED` | `false` |
+| `N8N_RUNNERS_GRANT_TOKEN_TTL` | `180` |
 
 > Se o endereço do serviço mudar, atualize **`N8N_HOST` e `WEBHOOK_URL`** juntos. Com eles errados, o formulário e os botões do Telegram apontam para o lugar errado.
 
@@ -74,6 +77,7 @@ Configuradas no Render (Environment). Os **valores secretos não ficam neste rep
 ## Conferir que está tudo certo
 
 - Render → **Logs**: aparece `Editor is now accessible via: https://naty-n8n.onrender.com`.
+- Render → **Logs**: **não** aparece `Task runner connection attempt failed`. Se aparecer, os nós de código não rodam (veja `docs/OPERACAO.md`).
 - Workflow 1 → nó "Formulário: colar pedido": a URL de produção começa com `https://naty-n8n.onrender.com/`.
 - Deixe o n8n 30 min sem abrir e veja em Render → **Events** que ele **não** foi desligado ("spun down"). Se foi, o cron-job.org não está batendo.
 
