@@ -1,0 +1,283 @@
+{
+  "name": "Naty – Lembretes no Telegram",
+  "nodes": [
+    {
+      "id": "a0000000-0000-4000-8000-000000000019",
+      "name": "A cada 10 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000020",
+      "name": "Configuração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// ===== CONFIGURAÇÃO: edite aqui =====\nconst CONFIG = {\n  calendario_id: 'primary',                 // o mesmo do workflow de pedidos\n  telegram_chat_id: 'COLOQUE_O_CHAT_ID',    // veja SETUP.md, passo 8\n  // true  = só eventos criados pelo robô (use se o calendário for o pessoal da Naty)\n  // false = todos os eventos do calendário (use com um calendário só de serviços)\n  apenas_eventos_do_robo: true,\n  antecedencias_min: [2880, 1440, 720, 360], // 2 dias, 1 dia, 12h, 6h\n  fuso: 'America/Sao_Paulo',\n};\n// ====================================\n\nconst agora = DateTime.now();\nreturn [{\n  json: {\n    ...CONFIG,\n    timeMin: agora.toUTC().toISO(),\n    timeMax: agora.plus({ minutes: Math.max(...CONFIG.antecedencias_min) + 60 }).toUTC().toISO(),\n  },\n}];\n"
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000021",
+      "name": "Ler agenda (próximas 49h)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($json.calendario_id) }}/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "timeMin",
+              "value": "={{ $json.timeMin }}"
+            },
+            {
+              "name": "timeMax",
+              "value": "={{ $json.timeMax }}"
+            },
+            {
+              "name": "singleEvents",
+              "value": "true"
+            },
+            {
+              "name": "orderBy",
+              "value": "startTime"
+            },
+            {
+              "name": "maxResults",
+              "value": "250"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000022",
+      "name": "Calcular lembretes devidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -80
+      ],
+      "parameters": {
+        "jsCode": "// Decide quais eventos precisam de lembrete AGORA.\n// Regras:\n// - Um lembrete está \"devido\" quando já passou do horário dele (início - antecedência).\n// - O envio fica marcado no próprio evento (extendedProperties.private.lembrete_<min>),\n//   guardando o horário de início a que ele se refere. Se a Naty mudar a data do evento,\n//   a marca deixa de valer e os lembretes voltam a disparar para a nova data.\n// - Se vários lembretes estiverem devidos ao mesmo tempo (n8n fora do ar, pedido urgente),\n//   manda UMA mensagem com o tempo real que falta, em vez de vários avisos seguidos.\nconst cfg = $('Configuração').first().json;\nconst resp = $input.first().json;\nconst agora = DateTime.now().setZone(cfg.fuso);\n\nconst esc = s => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst limparTitulo = s => String(s || '').replace(/^(⏳ \\[A CONFIRMAR\\] |✅ |⚠️ VERIFICAR: )/, '');\n\nfunction faltam(inicio) {\n  const total = Math.floor(inicio.diff(agora, 'minutes').minutes);\n  const d = Math.floor(total / 1440);\n  const h = Math.floor((total % 1440) / 60);\n  const m = total % 60;\n  if (d > 0) return d + (d === 1 ? ' dia' : ' dias') + (h ? ' e ' + h + 'h' : '');\n  if (h > 0) return h + 'h' + (m ? String(m).padStart(2, '0') : '');\n  return m + ' min';\n}\n\nconst saida = [];\nfor (const ev of resp.items || []) {\n  if (ev.status === 'cancelled' || !ev.start) continue;\n  const priv = (ev.extendedProperties && ev.extendedProperties.private) || {};\n  if (cfg.apenas_eventos_do_robo && priv.naty_bot !== '1') continue;\n\n  const diaInteiro = !ev.start.dateTime;\n  const inicio = diaInteiro\n    ? DateTime.fromISO(ev.start.date, { zone: cfg.fuso })\n    : DateTime.fromISO(ev.start.dateTime).setZone(cfg.fuso);\n  if (!inicio.isValid || inicio <= agora) continue;\n\n  const chaveInicio = inicio.toUTC().toISO();\n  const devidos = cfg.antecedencias_min.filter(min =>\n    inicio.minus({ minutes: min }) <= agora && priv['lembrete_' + min] !== chaveInicio);\n  if (!devidos.length) continue;\n\n  const horas = inicio.diff(agora, 'hours').hours;\n  const icone = horas <= 6 ? '🚨' : horas <= 24 ? '⏰' : '📅';\n  const titulo = ev.summary || '(sem título)';\n  const linhas = [\n    icone + ' <b>FALTAM ' + esc(faltam(inicio)).toUpperCase() + '</b>',\n    '<b>' + esc(limparTitulo(titulo)) + '</b>',\n    '📅 ' + esc(inicio.setLocale('pt-BR').toFormat(\"cccc, dd/MM\")) +\n      (diaInteiro ? ' — <b>SEM HORÁRIO DEFINIDO</b>' : ' às ' + inicio.toFormat('HH:mm')),\n  ];\n  if (ev.location) linhas.push('📍 ' + esc(ev.location));\n  if (titulo.startsWith('⏳')) linhas.push('\\n⚠️ Este pedido <b>ainda não foi confirmado</b>. Confira a data!');\n  if (titulo.startsWith('⚠️')) linhas.push('\\n⚠️ Este evento está marcado para <b>VERIFICAR</b>. A data pode estar errada!');\n  if (ev.htmlLink) linhas.push('\\n<a href=\"' + esc(ev.htmlLink) + '\">Abrir na agenda</a>');\n\n  const marcas = {};\n  for (const min of devidos) marcas['lembrete_' + min] = chaveInicio;\n\n  saida.push({\n    json: {\n      event_id: ev.id,\n      texto: linhas.join('\\n'),\n      extendedProperties: { private: { ...priv, ...marcas } },\n    },\n  });\n}\nreturn saida;\n"
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000023",
+      "name": "Enviar lembrete",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        -80
+      ],
+      "parameters": {
+        "chatId": "={{ $('Configuração').first().json.telegram_chat_id }}",
+        "text": "={{ $json.texto }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000024",
+      "name": "Marcar lembrete como enviado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Configuração').first().json.calendario_id) }}/events/{{ $('Calcular lembretes devidos').item.json.event_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ extendedProperties: $('Calcular lembretes devidos').item.json.extendedProperties }) }}",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000025",
+      "name": "Avisar falha nesta rodada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        120
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a0000000-0000-4000-8000-000000000026",
+              "leftValue": "={{ $now.minute < 10 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000027",
+      "name": "Avisar: lembretes PARADOS",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        100
+      ],
+      "parameters": {
+        "chatId": "={{ $('Configuração').first().json.telegram_chat_id }}",
+        "text": "=🚨 <b>Os lembretes estão PARADOS.</b>\nO robô não conseguiu ler a Agenda Google. Confira a agenda manualmente e avise quem cuida do n8n.\n\nErro: {{ JSON.stringify($json.error || $json).slice(0, 300).replace(/</g, '&lt;') }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "A cada 10 minutos": {
+      "main": [
+        [
+          {
+            "node": "Configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração": {
+      "main": [
+        [
+          {
+            "node": "Ler agenda (próximas 49h)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler agenda (próximas 49h)": {
+      "main": [
+        [
+          {
+            "node": "Calcular lembretes devidos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar falha nesta rodada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular lembretes devidos": {
+      "main": [
+        [
+          {
+            "node": "Enviar lembrete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar lembrete": {
+      "main": [
+        [
+          {
+            "node": "Marcar lembrete como enviado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Avisar falha nesta rodada?": {
+      "main": [
+        [
+          {
+            "node": "Avisar: lembretes PARADOS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveManualExecutions": true
+  },
+  "pinData": {}
+}
