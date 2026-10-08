@@ -1,15 +1,17 @@
 {
   "name": "naty-agenda",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "Automação n8n: pedidos de serviço → Google Agenda → confirmação e lembretes no Telegram",
+  "author": "kauaxp77",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/testar_validacao.js && node test/testar_lembretes.js",
+    "build": "node build.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
     "luxon": "^3.7.2"
   }
 }

@@ -1,79 +1,99 @@
-# n8n no Render (grátis) + banco no Supabase (grátis)
+# Hospedagem: Render (grátis) + Supabase (grátis)
 
 ```
-Render (grátis, 512 MB)  ──── banco ────►  Supabase Postgres (grátis, 500 MB)
-  n8n em https://NOME.onrender.com          workflows, credenciais, histórico
-        ▲
-        │ GET /healthz a cada 5 min  (sem isso o Render põe o n8n para dormir)
-  cron-job.org (grátis)
+GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Dockerfile (n8nio/n8n:stable)
+                                                   │
+                                                   ▼
+                              n8n em https://naty-n8n.onrender.com  (free, 512 MB)
+                                   ▲                     │
+     GET /healthz a cada 5 min ────┘                     │ Postgres via Session pooler (SSL)
+     (cron-job.org; sem isso o Render                    ▼
+      desliga o n8n após 15 min)            Supabase: projeto naty-n8n (us-west-1)
+                                            usuário n8n · schema n8n
 ```
+
+## O que já existe
+
+| Recurso | Identificação |
+|---|---|
+| Serviço Render | `naty-n8n` · `srv-db3ra6jtqb8s73f3t9lg` · região Oregon · plano Free · auto-deploy da branch `main` |
+| Endereço | https://naty-n8n.onrender.com |
+| Projeto Supabase | `naty-n8n` · ID `umbtzzxqcblurjthpydg` · região us-west-1 |
+| Usuário do banco | `n8n` (no pooler: `n8n.umbtzzxqcblurjthpydg`), com permissão para criar o próprio schema |
+| Schema | `n8n` (criado pelo n8n no primeiro start) · `n8n_antigo` é um resto vazio e pode ser apagado |
 
 ## Por que cada peça
 
 | Peça | Motivo |
 |---|---|
 | **Supabase** em vez do Postgres do Render | O Postgres grátis do Render **expira** (30 a 90 dias) e apaga workflows e credenciais. |
+| **Session pooler**, porta 5432 | A conexão direta do Supabase é só IPv6, e o Render não sai por IPv6. O *Transaction pooler* (6543) não serve para o n8n. |
 | **cron-job.org** | O Render desliga o serviço grátis após **15 min sem acesso**. Desligado, o n8n não lê o Gmail nem manda lembretes. |
-| `N8N_ENCRYPTION_KEY` fixa | O disco do Render é apagado a cada reinício. Sem a chave fixa, as credenciais salvas viram lixo. |
-| `NODE_OPTIONS=--max-old-space-size=380` | O plano grátis tem 512 MB. Isso faz o n8n limpar memória antes de o Render matá-lo. |
-| Histórico de execuções curto (3 dias) | O banco grátis do Supabase tem 500 MB. |
+| `N8N_ENCRYPTION_KEY` fixa | O disco do Render é apagado a cada deploy/reinício. Sem a chave fixa, as credenciais salvas viram lixo. |
+| `NODE_OPTIONS=--max-old-space-size=380` | O plano grátis tem 512 MB; isso faz o n8n liberar memória antes de o Render matá-lo. |
+| Histórico de execuções de 3 dias | O banco grátis do Supabase tem 500 MB. |
+| Imagem do **Docker Hub** | O registro `docker.n8n.io` devolveu 429 nos builds do Render (ver `docs/DECISOES.md`, D9). |
 
-## Riscos que continuam (leia antes)
-1. **Se o cron-job.org falhar** (conta desativada, site fora), o n8n dorme e os lembretes param. Ao acordar, o workflow de lembretes manda **um** aviso atrasado com o tempo real que falta, mas, se ele acordar só depois do evento, o lembrete já se perdeu.
-2. **512 MB é o limite para o n8n.** Se o Render matar o processo por falta de memória (aparece "Out of memory" nos logs), o serviço reinicia sozinho. Se isso virar rotina, o plano Starter do Render (~US$7/mês) resolve.
-3. **O Render pode reiniciar serviços grátis a qualquer momento.** Com banco externo e chave fixa, nada se perde; só há alguns minutos fora do ar.
-4. **O banco do Supabase fica nos EUA**, e o Render também (Oregon). A distância não afeta lembretes de horas ou dias.
+## Variáveis de ambiente do serviço
 
-## Passo a passo
-
-### 1. Banco (Supabase) ✅ já criado
-Projeto **`naty-n8n`** (ID `umbtzzxqcblurjthpydg`, região us-west-1), com usuário `n8n` e schema `n8n` próprios, separados dos seus outros projetos.
-
-No painel do Supabase: projeto → botão **Connect** → **Session pooler**. Anote o **host** (algo como `aws-0-us-west-1.pooler.supabase.com`) e a porta `5432`.
-> Use o **Session pooler**, não a conexão direta (`db.xxx.supabase.co`): a direta só funciona por IPv6, e o Render não sai por IPv6.
-
-### 2. Serviço no Render
-https://dashboard.render.com → **New → Web Service** → **Existing Image**:
-- Image URL: `docker.n8n.io/n8nio/n8n:stable`
-- Name: `naty-n8n` (vira `https://naty-n8n.onrender.com`; se o nome estiver ocupado, anote o endereço que o Render der)
-- Region: **Oregon**
-- Instance type: **Free**
-- Em **Advanced**, coloque **Health Check Path** = `/healthz`
-- Environment Variables: as da tabela abaixo
+Configuradas no Render (Environment). Os **valores secretos não ficam neste repositório**.
 
 | Chave | Valor |
 |---|---|
 | `DB_TYPE` | `postgresdb` |
-| `DB_POSTGRESDB_HOST` | host do Session pooler (passo 1) |
+| `DB_POSTGRESDB_HOST` | `aws-0-us-west-1.pooler.supabase.com` |
 | `DB_POSTGRESDB_PORT` | `5432` |
 | `DB_POSTGRESDB_DATABASE` | `postgres` |
-| `DB_POSTGRESDB_USER` | `n8n.<ID-DO-PROJETO>` (o ponto e o ID são obrigatórios no pooler) |
-| `DB_POSTGRESDB_PASSWORD` | senha do usuário `n8n` |
+| `DB_POSTGRESDB_USER` | `n8n.umbtzzxqcblurjthpydg` |
+| `DB_POSTGRESDB_PASSWORD` | 🔒 (gerenciador de senhas) |
 | `DB_POSTGRESDB_SCHEMA` | `n8n` |
 | `DB_POSTGRESDB_SSL_ENABLED` | `true` |
 | `DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED` | `false` |
-| `N8N_ENCRYPTION_KEY` | gere com `openssl rand -hex 32` e **guarde uma cópia fora do Render** |
-| `N8N_PORT` | `5678` |
-| `PORT` | `5678` |
+| `N8N_ENCRYPTION_KEY` | 🔒 (gerenciador de senhas) |
+| `N8N_PORT` / `PORT` | `5678` |
 | `N8N_PROTOCOL` | `https` |
 | `N8N_HOST` | `naty-n8n.onrender.com` |
 | `WEBHOOK_URL` | `https://naty-n8n.onrender.com/` |
 | `N8N_PROXY_HOPS` | `1` |
-| `GENERIC_TIMEZONE` | `America/Sao_Paulo` |
-| `TZ` | `America/Sao_Paulo` |
+| `GENERIC_TIMEZONE` / `TZ` | `America/Sao_Paulo` |
 | `NODE_OPTIONS` | `--max-old-space-size=380` |
 | `EXECUTIONS_DATA_PRUNE` | `true` |
 | `EXECUTIONS_DATA_MAX_AGE` | `72` |
 | `N8N_DIAGNOSTICS_ENABLED` | `false` |
 
-Clique em **Deploy**. A primeira subida leva alguns minutos. Nos logs, espere `Editor is now accessible via`. Abra `https://naty-n8n.onrender.com`, crie a conta de dono com **senha forte** e ative a **verificação em duas etapas**.
+> Se o endereço do serviço mudar, atualize **`N8N_HOST` e `WEBHOOK_URL`** juntos. Com eles errados, o formulário e os botões do Telegram apontam para o lugar errado.
 
-### 3. Manter acordado (cron-job.org)
-1. Crie a conta em https://cron-job.org (grátis).
-2. **Create cronjob**: URL `https://naty-n8n.onrender.com/healthz`, a cada **5 minutos**.
-3. Em **Notifications**, ative o aviso por e-mail **quando falhar**. É o seu alarme de "o n8n caiu".
+## Passos que faltam (no painel)
 
-### 4. Conferir
-- Workflow 1 → nó "Formulário: colar pedido": a URL de produção deve começar com `https://naty-n8n.onrender.com/`.
-- Deixe o serviço parado 30 min sem abrir nada e veja no Render (aba **Events**) se ele **não** foi desligado ("spun down"). Se foi, o cron-job.org não está batendo.
-- Depois siga o `SETUP.md` normalmente.
+1. **Health check:** Render → `naty-n8n` → **Settings → Health Check Path** = `/healthz`.
+2. **Build Filters:** **Settings → Build & Deploy → Build Filters → Included Paths** = `Dockerfile`. Sem isso, qualquer push na `main` (até de documentação) reinicia o n8n.
+3. **Conta de dono:** abra https://naty-n8n.onrender.com, crie a conta com **senha forte** e ative a **verificação em duas etapas** (Settings → Personal).
+4. **cron-job.org:** crie a conta, depois **Create cronjob** com URL `https://naty-n8n.onrender.com/healthz`, a cada **5 minutos**, com aviso por e-mail **quando falhar**. Esse aviso é o alarme de "o n8n caiu".
+5. Siga o [`SETUP.md`](../SETUP.md) para credenciais, importação e testes.
+
+## Conferir que está tudo certo
+
+- Render → **Logs**: aparece `Editor is now accessible via: https://naty-n8n.onrender.com`.
+- Workflow 1 → nó "Formulário: colar pedido": a URL de produção começa com `https://naty-n8n.onrender.com/`.
+- Deixe o n8n 30 min sem abrir e veja em Render → **Events** que ele **não** foi desligado ("spun down"). Se foi, o cron-job.org não está batendo.
+
+## Riscos que continuam
+
+1. **Se o cron-job.org falhar,** o n8n dorme e os lembretes param. Ao acordar, o workflow 2 manda **um** aviso atrasado com o tempo real que falta; se acordar depois do evento, o lembrete se perdeu.
+2. **512 MB é o limite para o n8n.** `Out of memory` frequente nos logs pede o plano Starter (~US$ 7/mês).
+3. **O Render pode reiniciar serviços grátis a qualquer momento.** Com banco externo e chave fixa, nada se perde; ficam alguns minutos fora do ar.
+4. **750 horas grátis por mês valem para a conta inteira.** Mantenha só um serviço grátis ativo (o `Beto_Banco` está suspenso).
+
+## Recriar do zero
+
+1. **Supabase:** novo projeto. No SQL Editor:
+   ```sql
+   create role n8n with login password 'SENHA_FORTE';
+   grant n8n to postgres;
+   grant create on database postgres to n8n;
+   alter role n8n set search_path = n8n;
+   -- não crie o schema n8n à mão (ver docs/DECISOES.md, D10)
+   ```
+   Host do pooler: projeto → **Connect → Direct → Session pooler**.
+2. **Render:** New → Web Service → este repositório (Docker, Dockerfile na raiz), região Oregon, plano Free, as variáveis acima (gere a chave com `openssl rand -hex 32` e **guarde uma cópia**).
+3. Os passos da seção "Passos que faltam".

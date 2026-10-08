@@ -1,4 +1,6 @@
-# Colocar o n8n no ar com HTTPS (VPS + Docker + Caddy)
+# Hospedagem alternativa: VPS / Oracle Cloud (Docker + Caddy)
+
+> A hospedagem **atual** é o Render, descrita em [`RENDER.md`](RENDER.md). Este guia serve para migrar para um servidor próprio (VPS paga ou Oracle Cloud grátis), caso o Render deixe de atender. Ver `docs/DECISOES.md`, D8.
 
 O Caddy pede e renova sozinho o certificado HTTPS (Let's Encrypt). Não há certificado para configurar à mão.
 
