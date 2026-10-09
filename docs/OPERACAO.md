@@ -89,6 +89,9 @@ Credenciais OAuth do Google podem expirar. No n8n: **Credentials** → "Google C
 - O n8n tentou e caiu na reserva? Nesse caso a confirmação foi por **e-mail**.
 - Os botões abrem o navegador em vez de responder no chat? O n8n não está em HTTPS público. Confira `WEBHOOK_URL` no Render.
 
+### Editar um workflow direto no banco
+**Não edite** `n8n.workflow_entity` com o editor do n8n aberto: o **autosave** da aba aberta sobrescreve a mudança segundos depois, mesmo trocando o `versionId` (aconteceu em 09/10/2026). Se precisar mesmo editar pelo banco, feche antes todas as abas do workflow e só reabra depois da alteração. O caminho normal é editar pelo editor, ou por `src/` + `build.js` e reimportar.
+
 ### O lembrete não chegou
 - O evento tem `naty_bot = 1`? Só eventos criados pelo robô recebem lembrete quando `apenas_eventos_do_robo = true`.
 - O n8n estava dormindo? Veja o histórico do cron-job.org.
