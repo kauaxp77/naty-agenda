@@ -52,8 +52,8 @@ Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`).
 | 10a | **Marcar como confirmado** | HTTP Request (PATCH) | Título `✅ …`, cor verde (`colorId 10`). |
 | 10b | **Marcar para verificar** | HTTP Request (PATCH) | Título `⚠️ VERIFICAR: …`, cor vermelha (`colorId 11`). |
 | 11 | **Avisar: corrigir na agenda** | Telegram | Pede para corrigir direto no evento, com link. Os lembretes continuam ativos. |
-| F1 | **Avisar: NÃO agendado** | Gmail | 🚨 E-mail com o motivo e o texto original do pedido. |
-| F2 | **Avisar no Telegram: NÃO agendado** | Telegram | 🚨 O mesmo aviso no Telegram. F1 e F2 disparam juntos. |
+| F1 | **Avisar: NÃO agendado** | Gmail | 🚨 E-mail com o motivo e o texto original do pedido. Configurado para **continuar mesmo se falhar**, para não impedir o F2. |
+| F2 | **Avisar no Telegram: NÃO agendado** | Telegram | 🚨 O mesmo aviso no Telegram. F1 e F2 disparam juntos (F1 primeiro). Se o F2 falhar, a execução fica marcada como erro em Executions. |
 
 ### A requisição para a IA
 

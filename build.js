@@ -153,12 +153,15 @@ const nodes = [
     'O evento ficou marcado como <b>VERIFICAR</b> (você tocou em "Está errado" ou não respondeu em 24h).\n' +
     'Os lembretes <b>continuam ativos</b>. Corrija a data/hora direto no evento; os lembretes se ajustam sozinhos.\n\n' +
     '<a href="{{ ' + EVT + '.htmlLink }}">Abrir o evento</a>'),
-  gmailSend('Avisar: NÃO agendado', [1340, 260],
+  // onError "continue": se o e-mail de alerta falhar, o alerta pelo Telegram (logo abaixo) ainda roda.
+  // Achado no 1º teste real: sem credencial no Gmail, a execução parava aqui e o Telegram nunca avisava.
+  { ...gmailSend('Avisar: NÃO agendado', [1340, 260],
     '=🚨 Pedido NÃO agendado — agende manualmente',
     "=<p><b>O robô não conseguiu agendar este pedido.</b> Coloque na agenda manualmente.</p>" +
     "<p>Motivo: {{ $json.erro || ('erro ao criar o evento no Google Agenda: ' + JSON.stringify($json.error || $json).slice(0, 500)) }}</p>" +
     "<p>Origem: {{ " + NORM + ".origem }}</p><hr>" +
     "<p>{{ " + NORM + ".texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\\n/g, '<br>') }}</p>"),
+    onError: 'continueRegularOutput' },
   // Falha crítica: avisa nos dois canais
   telegramMsg('Avisar no Telegram: NÃO agendado', [1340, 420], '={{ ' + NORM + '.telegram_chat_id }}',
     "=🚨 <b>Pedido NÃO agendado. Agende manualmente!</b>\n\n" +
@@ -197,6 +200,11 @@ function salvar(arquivo, name, nodes, connections) {
   };
   fs.writeFileSync(path.join(__dirname, arquivo), JSON.stringify(wf, null, 2));
   console.log('OK:', arquivo, 'com', nodes.length, 'nós');
+}
+
+// O alerta de falha por e-mail não pode bloquear o alerta pelo Telegram
+if (nodes.find(n => n.name === 'Avisar: NÃO agendado').onError !== 'continueRegularOutput') {
+  throw new Error('"Avisar: NÃO agendado" precisa de onError continueRegularOutput');
 }
 
 salvar('workflow-naty-agenda.json', 'Naty – Pedidos → Agenda (MVP)', nodes, connections);
