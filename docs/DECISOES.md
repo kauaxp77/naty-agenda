@@ -15,6 +15,7 @@ O porquê de cada escolha técnica, as alternativas descartadas e o preço pago 
 | D9 | [Imagem do n8n pelo Docker Hub](#d9-imagem-do-n8n-pelo-docker-hub) | Em vigor |
 | D10 | [O n8n cria o próprio schema no banco](#d10-o-n8n-cria-o-próprio-schema-no-banco) | Em vigor |
 | D11 | [Prazo maior para o executor dos nós de código](#d11-prazo-maior-para-o-executor-dos-nós-de-código) | Em vigor |
+| D12 | [Economia de memória no plano grátis](#d12-economia-de-memória-no-plano-grátis) | Em vigor (em observação) |
 
 ---
 
@@ -103,3 +104,13 @@ alter role n8n set search_path = n8n;
 **Decisão:** `N8N_RUNNERS_GRANT_TOKEN_TTL=180` nas variáveis do Render.
 **Preço:** nenhum. O token só vale para a conexão local entre o n8n e o próprio runner (127.0.0.1).
 **Lição:** "o editor abriu" não significa "está funcionando". Depois de cada deploy, confira os logs (ver `OPERACAO.md`).
+
+## D12. Economia de memória no plano grátis
+**Contexto:** em 09/10/2026, durante os testes no editor, o n8n ficou entre 440 e 487 MB, de 512 MB, e foi encerrado pelo Render (`server_failed · oomKilled 512Mi`). Ele reiniciou sozinho em 13 s, mas a página ficou fora do ar (502) por 1–2 min. Esse tipo de queda **não aparece nos logs do app**, só nos *Events* do serviço.
+**Decisão:**
+- limite de memória do processo principal reduzido de 380 para 300 MB (`NODE_OPTIONS=--max-old-space-size=300`);
+- limite de 96 MB para o executor dos nós Code (`N8N_RUNNERS_MAX_OLD_SPACE_SIZE`);
+- recursos sem uso desligados: templates, avisos de versão, personalização, IA embutida e API pública.
+
+**Correção registrada:** a documentação dizia que o plano Starter do Render resolveria falta de memória. **Ele também tem 512 MB.** As saídas reais são uma VPS (2–4 GB) ou o Render Standard (2 GB).
+**Em observação:** se aparecer `JavaScript heap out of memory` (limite baixo demais) ou novos `oomKilled` (limite alto demais), ajustar. Fora do editor, só com execuções em segundo plano, o consumo é menor que durante os testes.

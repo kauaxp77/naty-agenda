@@ -31,7 +31,7 @@ GitHub (kauaxp77/naty-agenda) ──push na main──► Render: constrói o Do
 | **Session pooler**, porta 5432 | A conexão direta do Supabase é só IPv6, e o Render não sai por IPv6. O *Transaction pooler* (6543) não serve para o n8n. |
 | **cron-job.org** | O Render desliga o serviço grátis após **15 min sem acesso**. Desligado, o n8n não lê o Gmail nem manda lembretes. |
 | `N8N_ENCRYPTION_KEY` fixa | O disco do Render é apagado a cada deploy/reinício. Sem a chave fixa, as credenciais salvas viram lixo. |
-| `NODE_OPTIONS=--max-old-space-size=380` | O plano grátis tem 512 MB; isso faz o n8n liberar memória antes de o Render matá-lo. |
+| Memória limitada nos dois processos (`NODE_OPTIONS=--max-old-space-size=300`, `N8N_RUNNERS_MAX_OLD_SPACE_SIZE=96`) e recursos desligados (templates, avisos de versão, personalização, IA do n8n, API pública) | O plano grátis tem 512 MB e o n8n já foi encerrado por falta de memória durante testes (09/10/2026). Ver `docs/DECISOES.md`, D12. |
 | Histórico de execuções de 3 dias | O banco grátis do Supabase tem 500 MB. |
 | Imagem do **Docker Hub**, versão fixa | O registro `docker.n8n.io` devolveu 429 nos builds do Render (ver `docs/DECISOES.md`, D9). Versão fixa evita atualização surpresa a cada push. |
 | `N8N_RUNNERS_GRANT_TOKEN_TTL=180` | Com a CPU mínima do plano grátis, o executor dos nós de código leva ~36 s para iniciar e perdia o prazo padrão de 30 s. Sem ele, **nenhum nó Code roda** (ver D11). |
@@ -58,7 +58,13 @@ Configuradas no Render (Environment). Os **valores secretos não ficam neste rep
 | `WEBHOOK_URL` | `https://naty-n8n.onrender.com/` |
 | `N8N_PROXY_HOPS` | `1` |
 | `GENERIC_TIMEZONE` / `TZ` | `America/Sao_Paulo` |
-| `NODE_OPTIONS` | `--max-old-space-size=380` |
+| `NODE_OPTIONS` | `--max-old-space-size=300` |
+| `N8N_RUNNERS_MAX_OLD_SPACE_SIZE` | `96` |
+| `N8N_TEMPLATES_ENABLED` | `false` |
+| `N8N_VERSION_NOTIFICATIONS_ENABLED` | `false` |
+| `N8N_PERSONALIZATION_ENABLED` | `false` |
+| `N8N_AI_ENABLED` | `false` |
+| `N8N_PUBLIC_API_DISABLED` | `true` |
 | `EXECUTIONS_DATA_PRUNE` | `true` |
 | `EXECUTIONS_DATA_MAX_AGE` | `72` |
 | `N8N_DIAGNOSTICS_ENABLED` | `false` |
@@ -84,7 +90,7 @@ Configuradas no Render (Environment). Os **valores secretos não ficam neste rep
 ## Riscos que continuam
 
 1. **Se o cron-job.org falhar,** o n8n dorme e os lembretes param. Ao acordar, o workflow 2 manda **um** aviso atrasado com o tempo real que falta; se acordar depois do evento, o lembrete se perdeu.
-2. **512 MB é o limite para o n8n.** `Out of memory` frequente nos logs pede o plano Starter (~US$ 7/mês).
+2. **512 MB é o limite para o n8n.** O Render encerra o processo quando passa disso (aparece em **Events** como *Server failed: out of memory*) e reinicia sozinho em 1–2 min. Se for frequente, **o plano Starter não resolve** (também tem 512 MB): a saída é o Standard (2 GB) ou uma VPS (`deploy/LEIA-ME.md`).
 3. **O Render pode reiniciar serviços grátis a qualquer momento.** Com banco externo e chave fixa, nada se perde; ficam alguns minutos fora do ar.
 4. **750 horas grátis por mês valem para a conta inteira.** Mantenha só um serviço grátis ativo (o `Beto_Banco` está suspenso).
 

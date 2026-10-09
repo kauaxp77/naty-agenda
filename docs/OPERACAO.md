@@ -76,7 +76,8 @@ A Naty tocou em "Está errado" ou não respondeu em 24h. Abra o evento pelo link
 | `ENOTFOUND` / `ENETUNREACH` no host do banco | Host errado, ou conexão direta (IPv6) em vez do pooler | Use o host do **Session pooler**, porta 5432, usuário `n8n.umbtzzxqcblurjthpydg`. |
 | `Tenant or user not found` | Usuário sem o sufixo `.umbtzzxqcblurjthpydg` | O pooler exige `usuario.ID-do-projeto`. |
 | `Task runner connection attempt failed: invalid or expired grant token` | O executor dos nós de código demorou mais que o prazo para iniciar (CPU fraca) | Aumentar `N8N_RUNNERS_GRANT_TOKEN_TTL` (hoje `180`). Sem o runner, **os nós Code falham** e os dois workflows param. |
-| `Out of memory` / `JavaScript heap out of memory` | 512 MB não bastaram | Se for raro, ignore (reinicia sozinho). Se for frequente, veja [Quando sair do plano grátis](#quando-sair-do-plano-grátis). |
+| Página 502 por 1–2 min; em **Events**: *server_failed · oomKilled 512Mi* (não aparece nos logs do app) | 512 MB não bastaram | Reinicia sozinho. Se for frequente, veja [Quando sair do plano grátis](#quando-sair-do-plano-grátis). |
+| `JavaScript heap out of memory` nos logs | O limite de memória do processo (`NODE_OPTIONS`) ficou baixo demais | Subir `--max-old-space-size` (hoje 300), sem passar de ~380 no plano grátis |
 
 ### Google desconectado
 Credenciais OAuth do Google podem expirar. No n8n: **Credentials** → "Google Calendar OAuth2" / "Gmail OAuth2" → **Reconnect**.
@@ -154,7 +155,7 @@ O plano grátis do Supabase **não tem backup automático** que se possa baixar.
 
 | Sinal | Upgrade | Custo aproximado |
 |---|---|---|
-| n8n reinicia por falta de memória, ou dorme mesmo com o cron-job.org | Render **Starter** (não dorme, mais CPU) | ~US$ 7/mês |
-| Precisa de mais memória ou de vários workflows pesados | Render Standard (2 GB), ou VPS com o `deploy/LEIA-ME.md` | US$ 25/mês ou ~R$ 30/mês |
+| Dorme mesmo com o cron-job.org, ou está lento demais | Render **Starter** (não dorme, mais CPU). ⚠️ Continua com **512 MB**: não resolve falta de memória | ~US$ 7/mês |
+| n8n encerrado por falta de memória com frequência | **VPS** com o `deploy/LEIA-ME.md` (2–4 GB por ~R$ 30/mês) ou Render Standard (2 GB) | ~R$ 30/mês ou US$ 25/mês |
 | Muitos 🚨 por limite do Groq | Plano pago do Groq (Developer), ou trocar o modelo | centavos por pedido |
 | Quer backup automático do banco | Supabase Pro | US$ 25/mês |
