@@ -1,4 +1,4 @@
-// Gera workflow-naty-agenda.json a partir dos arquivos em src/.
+// Gera os JSONs dos dois workflows a partir dos arquivos em src/.
 // Uso: node build.js
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +9,10 @@ const id = () => 'a0000000-0000-4000-8000-' + String(++n).padStart(12, '0');
 const NORM = "$('Normalizar entrada').first().json";
 const VAL = "$('Validar e montar evento').first().json";
 const EVT = "$('Criar evento na agenda').first().json";
+const FALHA = "$('Montar aviso de falha').first().json";
 const CAL_URL = "https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent(" + NORM + ".calendario_id) }}/events";
+// Versão da API do WhatsApp (Meta). Cada versão vale ~2 anos; ao vencer, a Meta usa a mais antiga disponível.
+const GRAPH = 'https://graph.facebook.com/v23.0';
 
 const googleHttp = (name, pos, method, url, body, extra = {}) => ({
   id: id(), name, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: pos,
@@ -22,15 +25,35 @@ const googleHttp = (name, pos, method, url, body, extra = {}) => ({
   retryOnFail: true, maxTries: 3, waitBetweenTries: 5000,
   ...extra,
 });
-const gmailSend = (name, pos, subject, message) => ({
+const gmail = (name, pos, sendTo, subject, message, extra = {}) => ({
   id: id(), name, type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: pos,
   parameters: {
-    sendTo: '={{ ' + NORM + '.email_naty }}',
-    subject, emailType: 'html', message,
+    sendTo, subject, emailType: 'html', message,
     options: { appendAttribution: false },
   },
   retryOnFail: true, maxTries: 3, waitBetweenTries: 5000,
+  ...extra,
 });
+// Resposta no WhatsApp para quem mandou o pedido. Grátis: é resposta dentro de 24h da mensagem recebida.
+const whatsapp = (name, pos, texto) => ({
+  id: id(), name, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: pos,
+  parameters: {
+    method: 'POST',
+    url: '=' + GRAPH + '/{{ ' + NORM + '.whatsapp_phone_number_id }}/messages',
+    authentication: 'predefinedCredentialType',
+    nodeCredentialType: 'whatsAppApi', // credencial "WhatsApp API": token + ID da conta do WhatsApp Business
+    sendBody: true, specifyBody: 'json',
+    jsonBody: "={{ JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: " + NORM +
+      ".responder_para, type: 'text', text: { preview_url: false, body: " + texto + ' } }) }}',
+    options: {},
+  },
+  retryOnFail: true, maxTries: 2, waitBetweenTries: 3000,
+  // Se o WhatsApp recusar (token vencido, número fora da lista de teste...), o aviso vai por e-mail
+  onError: 'continueErrorOutput',
+});
+// Linha extra no e-mail quando ele substitui uma resposta do WhatsApp que falhou
+const NOTA_WHATSAPP_FALHOU = "{{ $json.error ? '<p><i>Este aviso foi por e-mail porque a resposta pelo WhatsApp falhou: ' + " +
+  "JSON.stringify($json.error).slice(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</i></p>' : '' }}";
 const ifNode = (name, pos, left, operator) => ({
   id: id(), name, type: 'n8n-nodes-base.if', typeVersion: 2.2, position: pos,
   parameters: {
@@ -43,22 +66,23 @@ const ifNode = (name, pos, left, operator) => ({
     options: {},
   },
 });
+const VAZIO = { type: 'string', operation: 'empty', singleValue: true };
+const VERDADEIRO = { type: 'boolean', operation: 'true', singleValue: true };
 const code = (name, pos, file) => ({
   id: id(), name, type: 'n8n-nodes-base.code', typeVersion: 2, position: pos,
   parameters: { jsCode: src(file) },
 });
 
-const telegramMsg = (name, pos, chatId, text) => ({
-  id: id(), name, type: 'n8n-nodes-base.telegram', typeVersion: 1.2, position: pos,
-  parameters: {
-    chatId, text,
-    additionalFields: { appendAttribution: false, parse_mode: 'HTML', disable_web_page_preview: true },
-  },
-  retryOnFail: true, maxTries: 3, waitBetweenTries: 5000,
-});
-const ESPERA_24H = { limitWaitTime: { values: { limitType: 'afterTimeInterval', resumeAmount: 24, resumeUnit: 'hours' } }, appendAttribution: false };
-
+// ===================== Workflow 1: pedidos → agenda =====================
 const nodes = [
+  {
+    id: id(), name: 'WhatsApp: novo pedido', type: 'n8n-nodes-base.whatsAppTrigger', typeVersion: 1, position: [0, -220],
+    webhookId: 'e4d1b3f5-8a2c-4f6e-b7d9-0c1e2f3a4b5c',
+    // Credencial "WhatsApp OAuth API": ID do app + chave secreta do app (Meta). Ao ativar o workflow,
+    // o n8n registra este endereço no app da Meta. Só funciona com o workflow ATIVO.
+    // messageStatusUpdates vazio: avisos de "entregue"/"lido" não disparam execuções.
+    parameters: { updates: ['messages'], options: { messageStatusUpdates: [] } },
+  },
   {
     id: id(), name: 'Gmail: novo pedido', type: 'n8n-nodes-base.gmailTrigger', typeVersion: 1.2, position: [0, 0],
     parameters: {
@@ -73,7 +97,7 @@ const nodes = [
     webhookId: 'b1a7e0c2-5d1f-4c8e-9a3b-7f2d6e4c1a90',
     parameters: {
       formTitle: 'Novo pedido de serviço',
-      formDescription: 'Cole aqui o texto do pedido que chegou por WhatsApp, telefone etc. O robô vai agendar e pedir sua confirmação por e-mail.',
+      formDescription: 'Cole aqui o texto de um pedido. O robô agenda e avisa por e-mail. (O caminho normal é encaminhar o pedido ao WhatsApp do robô.)',
       formFields: {
         values: [
           { fieldLabel: 'Texto do pedido', fieldType: 'textarea', requiredField: true },
@@ -86,10 +110,11 @@ const nodes = [
       options: {},
     },
   },
-  code('Normalizar entrada', [240, 100], '01_normalizar.js'),
-  code('Montar pedido para a IA', [460, 100], '02_montar_requisicao.js'),
+  code('Normalizar entrada', [240, 0], '01_normalizar.js'),
+  ifNode('Dá para ler?', [460, 0], '={{ $json.erro }}', VAZIO),
+  code('Montar pedido para a IA', [680, -100], '02_montar_requisicao.js'),
   {
-    id: id(), name: 'Groq: extrair dados', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [680, 100],
+    id: id(), name: 'Groq: extrair dados', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [900, -100],
     parameters: {
       method: 'POST',
       url: 'https://api.groq.com/openai/v1/chat/completions',
@@ -102,96 +127,58 @@ const nodes = [
     retryOnFail: true, maxTries: 3, waitBetweenTries: 30000, // espera passar o limite por minuto do plano grátis
     onError: 'continueRegularOutput',
   },
-  code('Validar e montar evento', [900, 100], '03_validar.js'),
-  ifNode('Extraiu certo?', [1120, 100], '={{ $json.erro }}', { type: 'string', operation: 'empty', singleValue: true }),
-  googleHttp('Criar evento na agenda', [1340, 0], 'POST', '=' + CAL_URL,
+  code('Validar e montar evento', [1120, -100], '03_validar.js'),
+  ifNode('Extraiu certo?', [1340, -100], '={{ $json.erro }}', VAZIO),
+  // sendUpdates=all: os convidados (emails_equipe) recebem o convite do Google
+  googleHttp('Criar evento na agenda', [1560, -200], 'POST', '=' + CAL_URL + '?sendUpdates=all',
     '={{ JSON.stringify($json.evento) }}', { onError: 'continueErrorOutput' }),
-  {
-    id: id(), name: 'Confirmar pelo Telegram', type: 'n8n-nodes-base.telegram', typeVersion: 1.2, position: [1560, -20],
-    webhookId: 'd3c9a2e4-7f3b-4e0a-9c5d-9b4f8a6e3c12',
-    parameters: {
-      operation: 'sendAndWait',
-      chatId: '={{ ' + NORM + '.telegram_chat_id }}',
-      // Markdown antigo, montado e escapado em src/03_validar.js
-      message: '={{ ' + VAL + '.telegram_texto }}',
-      approvalOptions: {
-        values: { approvalType: 'double', approveLabel: '✅ Está certo', disapproveLabel: '❌ Está errado' },
-      },
-      // Botões funcionam dentro do chat (exige n8n com HTTPS público; senão o n8n usa botões com link)
-      chatApproval: true,
-      approverIds: '={{ ' + NORM + '.telegram_chat_id }}',
-      unauthorizedReplyText: 'Só a Naty pode confirmar este pedido.',
-      postDecisionBehavior: 'showOutcome',
-      options: ESPERA_24H,
-    },
-    // Se o Telegram falhar, a confirmação vai por e-mail
-    onError: 'continueErrorOutput',
-  },
-  {
-    id: id(), name: 'Confirmar por e-mail (reserva)', type: 'n8n-nodes-base.gmail', typeVersion: 2.1, position: [1560, 160],
-    webhookId: 'c2b8f1d3-6e2a-4d9f-8b4c-8a3e7f5d2b01',
-    parameters: {
-      operation: 'sendAndWait',
-      sendTo: '={{ ' + NORM + '.email_naty }}',
-      subject: '={{ ' + VAL + '.assunto_email }}',
-      // texto puro: este nó escapa HTML (verificado no código do n8n 2.35)
-      message: '={{ ' + VAL + '.email_texto }}\n\nAbrir o evento na agenda: {{ ' + EVT + '.htmlLink }}',
-      approvalOptions: {
-        values: { approvalType: 'double', approveLabel: '✅ Confirmar', disapproveLabel: '❌ Está errado' },
-      },
-      options: ESPERA_24H,
-    },
-  },
-  // Sem clique em 24h o nó retoma sem "data.approved" → cai em "verificar"
-  ifNode('Confirmou?', [1780, -20], '={{ $json.data?.approved === true }}', { type: 'boolean', operation: 'true', singleValue: true }),
-  googleHttp('Marcar como confirmado', [2000, -120], 'PATCH', '=' + CAL_URL + '/{{ ' + EVT + '.id }}',
-    "={{ JSON.stringify({ summary: '✅ ' + " + VAL + ".resumo, colorId: '10' }) }}"),
-  googleHttp('Marcar para verificar', [2000, 80], 'PATCH', '=' + CAL_URL + '/{{ ' + EVT + '.id }}',
-    "={{ JSON.stringify({ summary: '⚠️ VERIFICAR: ' + " + VAL + ".resumo, colorId: '11' }) }}"),
-  telegramMsg('Avisar: corrigir na agenda', [2220, 80], '={{ ' + NORM + '.telegram_chat_id }}',
-    "=⚠️ <b>Corrija na agenda:</b> {{ " + VAL + ".resumo.replace(/&/g, '&amp;').replace(/</g, '&lt;') }}\n\n" +
-    'O evento ficou marcado como <b>VERIFICAR</b> (você tocou em "Está errado" ou não respondeu em 24h).\n' +
-    'Os lembretes <b>continuam ativos</b>. Corrija a data/hora direto no evento; os lembretes se ajustam sozinhos.\n\n' +
-    '<a href="{{ ' + EVT + '.htmlLink }}">Abrir o evento</a>'),
-  // onError "continue": se o e-mail de alerta falhar, o alerta pelo Telegram (logo abaixo) ainda roda.
-  // Achado no 1º teste real: sem credencial no Gmail, a execução parava aqui e o Telegram nunca avisava.
-  { ...gmailSend('Avisar: NÃO agendado', [1340, 260],
-    '=🚨 Pedido NÃO agendado — agende manualmente',
-    "=<p><b>O robô não conseguiu agendar este pedido.</b> Coloque na agenda manualmente.</p>" +
-    "<p>Motivo: {{ $json.erro || ('erro ao criar o evento no Google Agenda: ' + JSON.stringify($json.error || $json).slice(0, 500)) }}</p>" +
-    "<p>Origem: {{ " + NORM + ".origem }}</p><hr>" +
-    "<p>{{ " + NORM + ".texto.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\\n/g, '<br>') }}</p>"),
-    onError: 'continueRegularOutput' },
-  // Falha crítica: avisa nos dois canais
-  telegramMsg('Avisar no Telegram: NÃO agendado', [1340, 420], '={{ ' + NORM + '.telegram_chat_id }}',
-    "=🚨 <b>Pedido NÃO agendado. Agende manualmente!</b>\n\n" +
-    "Motivo: {{ ($json.erro || ('erro ao criar o evento no Google Agenda: ' + JSON.stringify($json.error || $json).slice(0, 300))).replace(/&/g, '&amp;').replace(/</g, '&lt;') }}\n" +
-    "Origem: {{ " + NORM + ".origem }}\n\n" +
-    "<i>{{ " + NORM + ".texto.slice(0, 3000).replace(/&/g, '&amp;').replace(/</g, '&lt;') }}</i>"),
+  ifNode('Responder pelo WhatsApp?', [1780, -200], '={{ ' + NORM + ".canal === 'whatsapp' }}", VERDADEIRO),
+  whatsapp('WhatsApp: agendado', [2000, -300],
+    VAL + ".resposta_whatsapp + '\\n\\nAbrir na agenda: ' + " + EVT + '.htmlLink'),
+  gmail('E-mail: agendado', [2220, -160], '={{ ' + NORM + '.email_naty }}', '={{ ' + VAL + '.assunto_email }}',
+    '={{ ' + VAL + ".resposta_html }}<br><br><a href=\"{{ " + EVT + '.htmlLink }}">Abrir na agenda</a>' + NOTA_WHATSAPP_FALHOU,
+    { onError: 'continueRegularOutput' }),
+  code('Montar aviso de falha', [1560, 160], '04_aviso_falha.js'),
+  ifNode('Avisar pelo WhatsApp?', [1780, 160], '={{ ' + NORM + ".canal === 'whatsapp' }}", VERDADEIRO),
+  whatsapp('WhatsApp: NÃO agendado', [2000, 60], FALHA + '.texto_whatsapp'),
+  gmail('E-mail: NÃO agendado', [2220, 200], '={{ ' + NORM + '.email_naty }}', '={{ ' + FALHA + '.assunto_email }}',
+    '={{ ' + FALHA + '.html_email }}' + NOTA_WHATSAPP_FALHOU,
+    { onError: 'continueRegularOutput' }),
 ];
 
 const link = (to, idx = 0) => ({ node: to, type: 'main', index: idx });
 const connections = {
+  'WhatsApp: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Gmail: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Formulário: colar pedido': { main: [[link('Normalizar entrada')]] },
-  'Normalizar entrada': { main: [[link('Montar pedido para a IA')]] },
+  'Normalizar entrada': { main: [[link('Dá para ler?')]] },
+  'Dá para ler?': { main: [[link('Montar pedido para a IA')], [link('Montar aviso de falha')]] },
   'Montar pedido para a IA': { main: [[link('Groq: extrair dados')]] },
   'Groq: extrair dados': { main: [[link('Validar e montar evento')]] },
   'Validar e montar evento': { main: [[link('Extraiu certo?')]] },
-  'Extraiu certo?': { main: [[link('Criar evento na agenda')], [link('Avisar: NÃO agendado'), link('Avisar no Telegram: NÃO agendado')]] },
-  'Criar evento na agenda': { main: [[link('Confirmar pelo Telegram')], [link('Avisar: NÃO agendado'), link('Avisar no Telegram: NÃO agendado')]] },
-  'Confirmar pelo Telegram': { main: [[link('Confirmou?')], [link('Confirmar por e-mail (reserva)')]] },
-  'Confirmar por e-mail (reserva)': { main: [[link('Confirmou?')]] },
-  'Confirmou?': { main: [[link('Marcar como confirmado')], [link('Marcar para verificar')]] },
-  'Marcar para verificar': { main: [[link('Avisar: corrigir na agenda')]] },
+  'Extraiu certo?': { main: [[link('Criar evento na agenda')], [link('Montar aviso de falha')]] },
+  'Criar evento na agenda': { main: [[link('Responder pelo WhatsApp?')], [link('Montar aviso de falha')]] },
+  'Responder pelo WhatsApp?': { main: [[link('WhatsApp: agendado')], [link('E-mail: agendado')]] },
+  'WhatsApp: agendado': { main: [[], [link('E-mail: agendado')]] },
+  'Montar aviso de falha': { main: [[link('Avisar pelo WhatsApp?')]] },
+  'Avisar pelo WhatsApp?': { main: [[link('WhatsApp: NÃO agendado')], [link('E-mail: NÃO agendado')]] },
+  'WhatsApp: NÃO agendado': { main: [[], [link('E-mail: NÃO agendado')]] },
 };
 
 function salvar(arquivo, name, nodes, connections) {
-  // Sanidade: toda conexão aponta para um nó que existe
+  // Sanidade: toda conexão aponta para um nó que existe; nenhum resto do Telegram
   const nomes = new Set(nodes.map(x => x.name));
   for (const [de, c] of Object.entries(connections)) {
     if (!nomes.has(de)) throw new Error('nó inexistente: ' + de);
     c.main.flat().forEach(l => { if (!nomes.has(l.node)) throw new Error('nó inexistente: ' + l.node); });
+  }
+  if (nodes.some(x => /telegram/i.test(x.type))) throw new Error('sobrou nó do Telegram em ' + arquivo);
+  // Resposta pelo WhatsApp que falha precisa cair no e-mail, senão ninguém fica sabendo do pedido
+  for (const x of nodes.filter(x => x.name.startsWith('WhatsApp:') && x.type.endsWith('httpRequest'))) {
+    const erro = ((connections[x.name] || {}).main || [])[1] || [];
+    if (x.onError !== 'continueErrorOutput' || !erro.some(l => l.node.startsWith('E-mail:'))) {
+      throw new Error('"' + x.name + '" precisa mandar a falha para um nó de e-mail');
+    }
   }
   const wf = {
     name, nodes, connections,
@@ -202,26 +189,10 @@ function salvar(arquivo, name, nodes, connections) {
   console.log('OK:', arquivo, 'com', nodes.length, 'nós');
 }
 
-// O alerta de falha por e-mail não pode bloquear o alerta pelo Telegram
-if (nodes.find(n => n.name === 'Avisar: NÃO agendado').onError !== 'continueRegularOutput') {
-  throw new Error('"Avisar: NÃO agendado" precisa de onError continueRegularOutput');
-}
-
 salvar('workflow-naty-agenda.json', 'Naty – Pedidos → Agenda (MVP)', nodes, connections);
 
-// ===================== Workflow 2: lembretes no Telegram =====================
+// ===================== Workflow 2: lembretes por e-mail =====================
 const CFG = "$('Configuração').first().json";
-const telegram = (name, pos, text, extra = {}) => ({
-  id: id(), name, type: 'n8n-nodes-base.telegram', typeVersion: 1.2, position: pos,
-  webhookId: undefined,
-  parameters: {
-    chatId: '={{ ' + CFG + '.telegram_chat_id }}',
-    text,
-    additionalFields: { appendAttribution: false, parse_mode: 'HTML', disable_web_page_preview: true },
-  },
-  retryOnFail: true, maxTries: 3, waitBetweenTries: 5000,
-  ...extra,
-});
 
 const nodesL = [
   {
@@ -252,27 +223,27 @@ const nodesL = [
     onError: 'continueErrorOutput',
   },
   code('Calcular lembretes devidos', [660, -80], '11_calcular_lembretes.js'),
-  telegram('Enviar lembrete', [880, -80], '={{ $json.texto }}', { onError: 'continueErrorOutput' }),
-  {
-    ...googleHttp('Marcar lembrete como enviado', [1100, -100], 'PATCH',
-      "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent(" + CFG + ".calendario_id) }}/events/{{ $('Calcular lembretes devidos').item.json.event_id }}",
-      "={{ JSON.stringify({ extendedProperties: $('Calcular lembretes devidos').item.json.extendedProperties }) }}"),
-  },
-  // Falha ao ler a agenda: avisa no Telegram, no máximo 1x por hora (não 6x)
-  ifNode('Avisar falha nesta rodada?', [660, 120], '={{ $now.minute < 10 }}', { type: 'boolean', operation: 'true', singleValue: true }),
-  telegram('Avisar: lembretes PARADOS', [880, 100],
-    "=🚨 <b>Os lembretes estão PARADOS.</b>\nO robô não conseguiu ler a Agenda Google. Confira a agenda manualmente e avise quem cuida do n8n.\n\nErro: {{ JSON.stringify($json.error || $json).slice(0, 300).replace(/</g, '&lt;') }}"),
+  gmail('Enviar lembrete por e-mail', [880, -80], '={{ $json.para }}', '={{ $json.assunto }}', '={{ $json.html }}',
+    { onError: 'continueErrorOutput' }),
+  googleHttp('Marcar lembrete como enviado', [1100, -100], 'PATCH',
+    "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent(" + CFG + ".calendario_id) }}/events/{{ $('Calcular lembretes devidos').item.json.event_id }}",
+    "={{ JSON.stringify({ extendedProperties: $('Calcular lembretes devidos').item.json.extendedProperties }) }}"),
+  // Falha ao ler a agenda: avisa por e-mail, no máximo 1x por hora (não 6x).
+  // Limite conhecido: se o problema for o acesso ao Google (Gmail e Agenda usam o mesmo), este e-mail também falha.
+  ifNode('Avisar falha nesta rodada?', [660, 120], '={{ $now.minute < 10 }}', VERDADEIRO),
+  gmail('Avisar: lembretes PARADOS', [880, 100], '={{ ' + CFG + '.email_naty }}', '=🚨 Os lembretes da agenda estão PARADOS',
+    "=<p><b>O robô não conseguiu ler a Agenda Google.</b> Confira a agenda manualmente e avise quem cuida do n8n.</p>" +
+    "<p>Erro: {{ JSON.stringify($json.error || $json).slice(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;') }}</p>"),
 ];
-nodesL.forEach(nd => { if (nd.webhookId === undefined) delete nd.webhookId; });
 
 const connectionsL = {
   'A cada 10 minutos': { main: [[link('Configuração')]] },
   'Configuração': { main: [[link('Ler agenda (próximas 49h)')]] },
   'Ler agenda (próximas 49h)': { main: [[link('Calcular lembretes devidos')], [link('Avisar falha nesta rodada?')]] },
-  'Calcular lembretes devidos': { main: [[link('Enviar lembrete')]] },
-  // Só marca como enviado se o Telegram aceitou; se falhar, tenta de novo na próxima rodada
-  'Enviar lembrete': { main: [[link('Marcar lembrete como enviado')], []] },
+  'Calcular lembretes devidos': { main: [[link('Enviar lembrete por e-mail')]] },
+  // Só marca como enviado se o e-mail saiu; se falhar, tenta de novo na próxima rodada
+  'Enviar lembrete por e-mail': { main: [[link('Marcar lembrete como enviado')], []] },
   'Avisar falha nesta rodada?': { main: [[link('Avisar: lembretes PARADOS')], []] },
 };
 
-salvar('workflow-naty-lembretes-telegram.json', 'Naty – Lembretes no Telegram', nodesL, connectionsL);
+salvar('workflow-naty-lembretes.json', 'Naty – Lembretes por e-mail', nodesL, connectionsL);

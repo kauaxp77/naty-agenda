@@ -1,25 +1,67 @@
 // ===== CONFIGURAÇÃO: edite aqui =====
 const CONFIG = {
   email_naty: 'COLOQUE_O_EMAIL_DA_NATY@gmail.com',
-  telegram_chat_id: 'COLOQUE_O_CHAT_ID',  // o mesmo do workflow de lembretes (SETUP.md, passo 6)
+  // Quem pode mandar pedidos ao robô pelo WhatsApp: DDI + DDD + número, só dígitos (ex.: '5511987654321').
+  // Mensagem de qualquer outro número é ignorada sem resposta.
+  whatsapp_autorizados: ['COLOQUE_O_NUMERO_DA_NATY'],
+  whatsapp_phone_number_id: 'COLOQUE_O_ID_DO_NUMERO', // Meta → app → WhatsApp → Configuração da API
+  // Recebem o convite do evento e os lembretes por e-mail, além da Naty. Ex.: ['joao@empresa.com']
+  emails_equipe: [],
   calendario_id: 'primary',       // ou o ID de um calendário dedicado
   duracao_padrao_horas: 2,        // usada quando o pedido não diz a hora de término
   fuso: 'America/Sao_Paulo',
 };
 // ====================================
 
-const j = $input.first().json;
-let texto, origem, referencia;
+// Celular brasileiro antigo pode chegar do WhatsApp sem o 9 ("551187654321" em vez de "5511987654321").
+// Compara as duas formas para a lista de autorizados funcionar nos dois casos.
+const formas = n => {
+  const d = String(n || '').replace(/\D/g, '');
+  const f = new Set([d]);
+  if (/^55\d{2}9\d{8}$/.test(d)) f.add(d.slice(0, 4) + d.slice(5));
+  if (/^55\d{2}\d{8}$/.test(d)) f.add(d.slice(0, 4) + '9' + d.slice(4));
+  return f;
+};
+const autorizado = numero => {
+  const de = formas(numero);
+  return CONFIG.whatsapp_autorizados.some(a => [...formas(a)].some(x => de.has(x)));
+};
 
-if (j['Texto do pedido']) {
-  // Veio do formulário (texto de WhatsApp colado pela Naty)
+const j = $input.first().json;
+let texto = '', origem, referencia, canal, responder_para = '', encaminhada = false, erro = '';
+
+if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
+  // Veio do WhatsApp (nó "WhatsApp Trigger": um item por mensagem recebida)
+  const m = (j.messages || [])[0];
+  if (!m) return [];                     // aviso de entrega/leitura, não é mensagem
+  if (!autorizado(m.from)) return [];    // número fora da lista: ignora
+  const nome = ((j.contacts || [])[0] || {}).profile?.name;
+  canal = 'whatsapp';
+  responder_para = m.from;
+  origem = 'WhatsApp' + (nome ? ' (' + nome + ')' : '');
+  encaminhada = !!(m.context && (m.context.forwarded || m.context.frequently_forwarded));
+  // Mensagem encaminhada não traz a data em que o cliente escreveu: a referência é o encaminhamento
+  const enviado = DateTime.fromSeconds(Number(m.timestamp) || 0);
+  referencia = (Number(m.timestamp) && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);
+  if (m.type === 'text') {
+    texto = (m.text && m.text.body) || '';
+  } else {
+    const tipos = { audio: 'um áudio', image: 'uma imagem', document: 'um arquivo', video: 'um vídeo', sticker: 'uma figurinha' };
+    erro = 'Recebi ' + (tipos[m.type] || 'uma mensagem que não é texto') +
+      ', mas por enquanto só leio mensagens de texto. Mande o pedido escrito (ou encaminhe a mensagem de texto do cliente).';
+  }
+  if (!erro && !texto.trim()) erro = 'A mensagem chegou vazia.';
+} else if (j['Texto do pedido']) {
+  // Veio do formulário (texto colado à mão)
   texto = j['Texto do pedido'];
+  canal = 'formulario';
   origem = 'Formulário (' + (j['Origem'] || 'colado') + ')';
   referencia = DateTime.now().setZone(CONFIG.fuso);
 } else {
   // Veio do Gmail
   const corpo = j.text || j.textPlain || j.snippet || '';
   texto = 'Assunto: ' + (j.subject || '') + '\nDe: ' + ((j.from && j.from.text) || '') + '\n\n' + corpo;
+  canal = 'email';
   origem = 'E-mail';
   // Datas relativas ("amanhã", "próxima terça") contam a partir do ENVIO do e-mail, não de agora
   const enviado = j.date ? DateTime.fromJSDate(new Date(j.date)) : null;
@@ -31,6 +73,10 @@ return [{
     ...CONFIG,
     texto,
     origem,
+    canal,             // whatsapp | email | formulario: define por onde vai a resposta
+    responder_para,    // número do WhatsApp de quem mandou o pedido
+    encaminhada,
+    erro,              // preenchido quando a mensagem não dá para ler (áudio, imagem...)
     referencia_iso: referencia.toISO(),
     referencia_extenso: referencia.setLocale('pt-BR').toFormat("cccc, dd 'de' LLLL 'de' yyyy, HH:mm"),
   },
