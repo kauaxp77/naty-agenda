@@ -24,36 +24,50 @@ Manual do dia a dia: o que conferir, o que fazer quando chega um alerta, onde ve
 | Repositório | https://github.com/kauaxp77/naty-agenda |
 | Monitor de disponibilidade | https://cron-job.org (tarefa batendo em `/healthz`) |
 | Chave da IA | https://console.groq.com |
-| Bot do Telegram | @BotFather → o bot da Naty |
+| App da Meta (WhatsApp) | https://developers.facebook.com/apps → app do robô → WhatsApp |
+| Token permanente do WhatsApp | https://business.facebook.com → Configurações do negócio → Usuários do sistema |
 
 ## Rotina semanal (5 minutos)
 
 1. **cron-job.org:** o histórico da tarefa `/healthz` está todo verde? Um vermelho isolado é normal (reinício do Render); vários seguidos, não.
-2. **n8n → Executions:** filtre por **Error**. Execução com erro sem ter gerado um 🚨 é sinal de algo novo.
-3. **Agenda:** há eventos `⏳ [A CONFIRMAR]` com mais de 1 dia? Não deveria haver: depois de 24h eles viram ✅ ou ⚠️. Se houver, o workflow 1 parou no meio.
-4. **Agenda:** há eventos `⚠️ VERIFICAR` com a data ainda não conferida? Conferir com o cliente.
+2. **n8n → Executions:** filtre por **Error**. Execução com erro sem ter gerado um 🚨 é sinal de algo novo. Olhe também o workflow "Lembretes por e-mail": se o acesso ao Google cair, o e-mail "lembretes PARADOS" também falha, e o problema só aparece aqui.
+3. **n8n:** o workflow 1 está **ativo**? Sem isso, o WhatsApp não chega.
+4. **Agenda:** há eventos vermelhos `⚠️ VERIFICAR` ainda não corrigidos? Conferir a data com o cliente, corrigir no evento e tirar o `⚠️ VERIFICAR:` do título.
 
 ## Quando chega um alerta
 
-### 🚨 "Pedido NÃO agendado — agende manualmente"
-O robô recebeu o pedido mas não conseguiu agendar. A mensagem traz o **motivo** e o **texto original**.
+### 🚨 "NÃO agendei este pedido" (WhatsApp) ou "Pedido NÃO agendado — agende manualmente" (e-mail)
+O robô recebeu o pedido mas não conseguiu agendar. A mensagem traz o **motivo**; o e-mail traz também o **texto original**.
 
 1. **Agende à mão agora**, com base no texto original.
 2. Veja o motivo:
-   - *"não identificou um pedido"* / *"Não consegui identificar a data"*: o texto não tinha data clara. Confirme a data com o cliente.
-   - *"Falha na chamada à IA"* com `429` / `rate_limit`: limite do plano grátis do Groq (e-mail muito longo, ou muitos pedidos no mesmo minuto). Se acontecer com frequência, veja [Limites](#limites-do-plano-grátis).
+   - *"Recebi um áudio / uma imagem / um arquivo…"*: o robô só lê texto. Mande o pedido escrito, ou encaminhe a mensagem de texto do cliente.
+   - *"Não encontrei um pedido de serviço com data"* / *"Não consegui identificar a data"*: o texto não tinha data clara. Confirme a data com o cliente.
+   - *"Falha na chamada à IA"* com `429` / `rate_limit`: limite do plano grátis do Groq (mensagem muito longa, ou muitos pedidos no mesmo minuto). Se acontecer com frequência, veja [Limites](#limites-do-plano-grátis).
    - *"Falha na chamada à IA"* com `401`: a chave do Groq expirou ou foi revogada. Crie outra e atualize a credencial no n8n.
-   - *"erro ao criar o evento no Google Agenda"*: veja [Google desconectado](#google-desconectado).
-3. Se o evento criado à mão estiver no calendário pessoal e o workflow 2 estiver com `apenas_eventos_do_robo: true`, ele **não terá lembretes no Telegram**, só os do app do Google Agenda. Alternativa: colar o texto no formulário de novo quando o problema for resolvido.
+   - *"Erro ao criar o evento no Google Agenda"*: veja [Google desconectado](#google-desconectado).
+3. Se o evento criado à mão estiver no calendário pessoal e o workflow 2 estiver com `apenas_eventos_do_robo: true`, ele **não terá lembretes por e-mail**, só os alarmes do app do Google Agenda. Alternativa: mandar o pedido de novo ao robô (WhatsApp ou formulário) quando o problema for resolvido.
 
-### 🚨 "Os lembretes estão PARADOS"
-O workflow 2 não conseguiu ler a Agenda Google. **Enquanto isso, nenhum lembrete do Telegram sai.** Os lembretes do app do Google Agenda continuam funcionando.
+### ⚠️ "Agendei, mas CONFIRA a data"
+O evento foi criado, mas **vermelho**, com `⚠️ VERIFICAR:` no título: o robô encontrou uma dúvida real sobre a data (sem horário, conflito com o dia da semana, data passada ou distante, IA incerta, mensagem encaminhada com "amanhã"). A lista de alertas está na resposta e na descrição do evento.
 
-1. Abra o n8n → Executions do workflow "Lembretes no Telegram" → a execução com erro → nó "Ler agenda".
+1. Confira a data com o cliente.
+2. Abra o evento pelo link e corrija data e hora, se preciso. Os lembretes se ajustam sozinhos.
+3. Tire o `⚠️ VERIFICAR:` do título (e, se quiser, troque a cor para verde). Enquanto o título começar com ⚠️, os e-mails de lembrete avisam que a data pode estar errada.
+
+### ✉️ E-mail com a nota "a resposta pelo WhatsApp falhou"
+O pedido foi processado, mas o robô não conseguiu responder no WhatsApp; o aviso foi por e-mail. O motivo está na nota. Veja [O robô não respondeu no WhatsApp](#o-robô-não-respondeu-no-whatsapp). O mais comum é o token temporário vencido.
+
+### 🚨 "Os lembretes da agenda estão PARADOS"
+O workflow 2 não conseguiu ler a Agenda Google. **Enquanto isso, nenhum lembrete por e-mail sai.** Os alarmes do app do Google Agenda continuam funcionando.
+
+1. Abra o n8n → Executions do workflow "Naty – Lembretes por e-mail" → a execução com erro → nó "Ler agenda (próximas 49h)".
 2. Causas comuns:
    - `401` / `invalid_grant`: login do Google expirou. Veja [Google desconectado](#google-desconectado).
    - `404`: `calendario_id` errado no nó "Configuração".
-3. Depois de corrigir, rode o workflow manualmente uma vez. Os lembretes atrasados saem em **uma** mensagem.
+3. Depois de corrigir, rode o workflow manualmente uma vez. Os lembretes atrasados saem em **um** e-mail por evento.
+
+> Se o problema for o acesso ao Google, este e-mail também pode não chegar (Gmail e Agenda usam o mesmo app OAuth). Por isso a rotina semanal confere as execuções.
 
 ### ✉️ E-mail do cron-job.org: "falhou"
 O n8n não respondeu ao `/healthz`, então **nada está rodando**: nem pedidos, nem lembretes.
@@ -61,9 +75,6 @@ O n8n não respondeu ao `/healthz`, então **nada está rodando**: nem pedidos, 
 1. Render → serviço `naty-n8n` → **Events**: houve deploy com falha? O serviço foi suspenso?
 2. Render → **Logs**: procure `Out of memory`, `ECONNREFUSED`, `password authentication failed`, `Timed Out`.
 3. Veja [O n8n não sobe](#o-n8n-não-sobe).
-
-### ⚠️ "Corrija na agenda"
-A Naty tocou em "Está errado" ou não respondeu em 24h. Abra o evento pelo link, corrija data e hora e salve. Os lembretes se ajustam sozinhos. Opcional: trocar o título para tirar o `⚠️ VERIFICAR:`.
 
 ## Problemas comuns
 
@@ -82,19 +93,30 @@ A Naty tocou em "Está errado" ou não respondeu em 24h. Abra o evento pelo link
 ### Google desconectado
 Credenciais OAuth do Google podem expirar. No n8n: **Credentials** → "Google Calendar OAuth2" / "Gmail OAuth2" → **Reconnect**.
 
-> Se o projeto no Google Cloud estiver em modo **Testing**, o login cai **a cada 7 dias**. Em *OAuth consent screen*, clique em **Publish app** para passar a *In production* (veja o `SETUP.md`, passo 4).
+> Se o projeto no Google Cloud estiver em modo **Testing**, o login cai **a cada 7 dias**. Em *OAuth consent screen*, clique em **Publish app** para passar a *In production* (veja o `SETUP.md`). Isso também vale para os lembretes: com o Google desconectado, nem o e-mail de alerta sai.
 
-### A confirmação não chegou no Telegram
-- A Naty mandou `/start` para o bot? Sem isso o bot não consegue escrever.
-- O `telegram_chat_id` no nó "Normalizar entrada" está certo?
-- O n8n tentou e caiu na reserva? Nesse caso a confirmação foi por **e-mail**.
-- Os botões abrem o navegador em vez de responder no chat? O n8n não está em HTTPS público. Confira `WEBHOOK_URL` no Render.
+### O robô não respondeu no WhatsApp
+Primeiro veja em n8n → Executions do workflow 1 se a mensagem chegou.
+
+| Sintoma | Causa | Solução |
+|---|---|---|
+| Nenhuma execução | Workflow 1 **inativo**. O WhatsApp Trigger só recebe com o workflow ativo: é na ativação que o n8n registra o webhook na Meta | Ative o workflow 1. Depois de reimportar, ative de novo |
+| Execução que para em "Normalizar entrada", sem resposta | Número fora de `whatsapp_autorizados` (ou foi só um aviso de entregue/lido) | Coloque o número no formato certo: DDI + DDD + número, só dígitos (ex.: `5511987654321`). Com ou sem o 9, as duas formas funcionam |
+| Resposta chegou por e-mail, com a nota "a resposta pelo WhatsApp falhou" e erro `190` (token) | Token temporário do painel da Meta: **vence em 24h** | Crie um **token permanente** de Usuário do sistema (Gerenciador de Negócios → Usuários do sistema) e atualize a credencial "WhatsApp API" |
+| Idem, com erro `131030` (destinatário fora da lista permitida) | O **número de teste** da Meta só envia para destinatários verificados (até 5) | Adicione o número da Naty à lista de destinatários no app da Meta → WhatsApp → Configuração da API |
+| Erro ao ativar: *already has a webhook subscription* | Só pode haver **um** WhatsApp Trigger por app da Meta. Outro workflow (ou um registro de teste) está com ele | Desative o outro workflow que usa o mesmo app, ou pare o teste no editor, e ative de novo |
+| Com um número real, as mensagens não chegam (no número de teste chegavam) | A conta do WhatsApp Business não está inscrita no app | `POST https://graph.facebook.com/v23.0/{WABA_ID}/subscribed_apps` com o token permanente |
+| Resposta "só leio mensagens de texto" | Áudio, imagem, documento, vídeo ou figurinha | Comportamento esperado: mandar o pedido escrito |
+| Formulário e webhook apontam para o endereço errado | `WEBHOOK_URL` / `N8N_HOST` errados no Render | Corrija no Render e desative/ative o workflow 1 |
 
 ### Editar um workflow direto no banco
 **Não edite** `n8n.workflow_entity` com o editor do n8n aberto: o **autosave** da aba aberta sobrescreve a mudança segundos depois, mesmo trocando o `versionId` (aconteceu em 09/10/2026). Se precisar mesmo editar pelo banco, feche antes todas as abas do workflow e só reabra depois da alteração. O caminho normal é editar pelo editor, ou por `src/` + `build.js` e reimportar.
 
 ### O lembrete não chegou
+- Por padrão, o e-mail sai **2 dias e 1 dia antes** (`antecedencias_min`). Os de 12h e 6h são só alarmes do app do Google Agenda, no celular do dono da agenda.
+- Procure no spam e confira o `email_naty` no nó "Configuração" do workflow 2.
 - O evento tem `naty_bot = 1`? Só eventos criados pelo robô recebem lembrete quando `apenas_eventos_do_robo = true`.
+- Era um convidado? Só recebe quem é convidado de evento do robô e não recusou o convite.
 - O n8n estava dormindo? Veja o histórico do cron-job.org.
 - Execução do workflow 2 com erro? Veja n8n → Executions.
 
@@ -103,16 +125,18 @@ Credenciais OAuth do Google podem expirar. No n8n: **Credentials** → "Google C
 - **Como o serviço é construído:** o Render clona este repositório e constrói o `Dockerfile` (`FROM n8nio/n8n:2.42.5`). Toda a configuração vem das variáveis de ambiente do serviço.
 - **Deploy automático:** **todo push na `main`** refaz o deploy, e o n8n fica alguns minutos fora do ar. A primeira subida num banco vazio leva ~5 min (migrações); as seguintes, ~2–4 min.
 - **Mudou uma variável de ambiente?** O Render refaz o deploy sozinho.
+- **Workflows reimportados?** Ative o workflow 1 de novo (registra o webhook do WhatsApp na Meta).
+- **Workflow antigo "Naty – Lembretes no Telegram":** se ainda existir no n8n, desative e apague. Ele grava as mesmas marcas (`lembrete_2880`, `lembrete_1440`) e faria o workflow novo pular os e-mails.
 
 ### Evitar redeploy a cada push
 Render → serviço → **Settings → Build & Deploy → Build Filters → Included Paths**: `Dockerfile`. Assim só uma mudança no `Dockerfile` refaz o deploy; documentação e workflows (que são importados à mão no n8n) não derrubam o serviço.
 
 ### Atualizar o n8n
 A versão está **fixada** no `Dockerfile` (`n8nio/n8n:2.42.5`). Para atualizar:
-1. Leia as notas da versão nova (docs.n8n.io → Release notes), procurando mudanças nos nós Gmail, Telegram, Code, HTTP Request e Schedule.
+1. Leia as notas da versão nova (docs.n8n.io → Release notes), procurando mudanças nos nós Gmail, WhatsApp Trigger, Form, Code, HTTP Request, IF e Schedule.
 2. Troque a versão no `Dockerfile`, faça o commit e o push. O deploy roda sozinho.
 3. Nos logs, confira `Version: …`, `Editor is now accessible` e a **ausência** de `Task runner connection attempt failed`.
-4. Rode o roteiro de testes do `SETUP.md` (passo 8).
+4. Rode o roteiro de testes do `SETUP.md`.
 
 ### Health check
 Render → **Settings → Health Check Path**: `/healthz`. Com isso, o Render só troca a versão antiga pela nova quando a nova responde, e reinicia o n8n se ele travar.
@@ -122,9 +146,10 @@ Render → **Settings → Health Check Path**: `/healthz`. Com isso, o Render s�
 | Segredo | Onde fica | Como trocar |
 |---|---|---|
 | Senha do usuário `n8n` no banco | Render → variável `DB_POSTGRESDB_PASSWORD` | No Supabase (SQL Editor): `alter role n8n with password 'NOVA_SENHA';` → atualizar a variável no Render → deploy |
-| `N8N_ENCRYPTION_KEY` | Render → variável + **cópia no gerenciador de senhas** | ⚠️ Trocar **invalida todas as credenciais salvas no n8n** (Google, Groq, Telegram), que precisam ser recriadas. Só é barato **antes** de criar as credenciais. |
+| `N8N_ENCRYPTION_KEY` | Render → variável + **cópia no gerenciador de senhas** | ⚠️ Trocar **invalida todas as credenciais salvas no n8n** (Google, Groq, WhatsApp), que precisam ser recriadas. Só é barato **antes** de criar as credenciais. |
 | Chave do Groq | Credencial "Header Auth" dentro do n8n | console.groq.com → nova chave → atualizar a credencial |
-| Token do bot do Telegram | Credencial "Telegram API" dentro do n8n | @BotFather → `/revoke` → atualizar a credencial |
+| Token de acesso do WhatsApp | Credencial "WhatsApp API" dentro do n8n (token + ID da conta do WhatsApp Business) | Gerenciador de Negócios → Usuários do sistema → gerar novo token permanente (permissões do WhatsApp) → atualizar a credencial → revogar o antigo. O token temporário do painel vence em 24h: não use em produção |
+| Chave secreta do app da Meta | Credencial "WhatsApp OAuth API" dentro do n8n (ID do app + chave secreta) | developers.facebook.com → app → Configurações → Básico → redefinir a chave secreta → atualizar a credencial → desativar e ativar o workflow 1 |
 | Google (Gmail/Agenda) | Credenciais OAuth2 dentro do n8n | Reconnect |
 | Conta de dono do n8n | Você | Senha forte + 2FA (Settings → Personal) |
 
@@ -133,7 +158,7 @@ Render → **Settings → Health Check Path**: `/healthz`. Com isso, o Render s�
 | O quê | Onde está a cópia | Se perder |
 |---|---|---|
 | Workflows | **Este repositório** (`workflow-*.json`, gerados de `src/`) | Reimportar |
-| Credenciais (Google, Groq, Telegram) | Só no banco, criptografadas com a `N8N_ENCRYPTION_KEY` | Recriar (uns 15 min, seguindo o `SETUP.md`) |
+| Credenciais (Google, Groq, WhatsApp) | Só no banco, criptografadas com a `N8N_ENCRYPTION_KEY` | Recriar seguindo o `SETUP.md` (o token permanente do WhatsApp pode ser gerado de novo na Meta) |
 | `N8N_ENCRYPTION_KEY` | Render + gerenciador de senhas | Credenciais precisam ser recriadas |
 | Eventos e status de lembretes | **Google Agenda** (fica fora do n8n) | Não se perdem se o n8n cair |
 | Histórico de execuções | Banco, 3 dias | Não é crítico |
@@ -149,6 +174,7 @@ O plano grátis do Supabase **não tem backup automático** que se possa baixar.
 | Render (free) | 750 h/mês **por conta**, 512 MB, dorme após 15 min sem acesso | Acabou a cota: serviço suspenso até o mês virar. **Mantenha só um serviço grátis ativo** (o `Beto_Banco` está suspenso). |
 | Supabase (free) | 500 MB de banco, 2 projetos ativos, projeto pausa após 7 dias sem uso | O n8n usa o banco o tempo todo, então não pausa. Histórico de execuções limitado a 3 dias para caber. |
 | Groq (free, `gpt-oss-120b`) | ~30 req/min, ~1.000 req/dia, ~8.000 tokens/min | Pedido vira 🚨 "NÃO agendado" após 3 tentativas |
+| WhatsApp Cloud API | Receber e responder dentro de 24h: grátis. Número de teste da Meta: envia só para até 5 destinatários verificados | Fora da janela de 24h, só com mensagem de modelo aprovado (paga). O robô não faz isso hoje |
 | cron-job.org | Grátis | Se a conta for desativada, o n8n dorme |
 
 ## Quando sair do plano grátis
@@ -158,4 +184,5 @@ O plano grátis do Supabase **não tem backup automático** que se possa baixar.
 | Dorme mesmo com o cron-job.org, ou está lento demais | Render **Starter** (não dorme, mais CPU). ⚠️ Continua com **512 MB**: não resolve falta de memória | ~US$ 7/mês |
 | n8n encerrado por falta de memória com frequência | **VPS** com o `deploy/LEIA-ME.md` (2–4 GB por ~R$ 30/mês) ou Render Standard (2 GB) | ~R$ 30/mês ou US$ 25/mês |
 | Muitos 🚨 por limite do Groq | Plano pago do Groq (Developer), ou trocar o modelo | centavos por pedido |
+| Cliente quer lembretes no WhatsApp | Mensagens de modelo aprovadas pela Meta, iniciadas pelo robô | centavos por mensagem |
 | Quer backup automático do banco | Supabase Pro | US$ 25/mês |

@@ -324,8 +324,7 @@
       },
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 5000,
-      "onError": "continueRegularOutput"
+      "waitBetweenTries": 5000
     },
     {
       "id": "a0000000-0000-4000-8000-000000000017",
@@ -419,8 +418,7 @@
       },
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 5000,
-      "onError": "continueRegularOutput"
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

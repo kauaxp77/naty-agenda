@@ -2,7 +2,7 @@
   "name": "naty-agenda",
   "version": "1.0.0",
   "private": true,
-  "description": "Automação n8n: pedidos de serviço → Google Agenda → confirmação e lembretes no Telegram",
+  "description": "Automação n8n: pedidos de serviço pelo WhatsApp → Google Agenda → resposta no WhatsApp e lembretes por e-mail",
   "author": "kauaxp77",
   "scripts": {
     "test": "node test/testar_validacao.js && node test/testar_lembretes.js",

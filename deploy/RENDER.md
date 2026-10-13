@@ -70,7 +70,7 @@ Configuradas no Render (Environment). Os **valores secretos não ficam neste rep
 | `N8N_DIAGNOSTICS_ENABLED` | `false` |
 | `N8N_RUNNERS_GRANT_TOKEN_TTL` | `180` |
 
-> Se o endereço do serviço mudar, atualize **`N8N_HOST` e `WEBHOOK_URL`** juntos. Com eles errados, o formulário e os botões do Telegram apontam para o lugar errado.
+> Se o endereço do serviço mudar, atualize **`N8N_HOST` e `WEBHOOK_URL`** juntos. Com eles errados, o formulário e o webhook do WhatsApp apontam para o lugar errado. Depois de corrigir, desative e ative o workflow 1 para o n8n registrar o endereço novo na Meta.
 
 ## Passos que faltam (no painel)
 

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Agenda automática de serviços</title>
+<style>
+  :root {
+    --ink: #17202a;
+    --muted: #5a6573;
+    --line: #dde2e7;
+    --surface: #f4f6f8;
+    --accent: #11724c;
+    --accent-soft: #e5f3ec;
+    --warn: #b42318;
+    --warn-soft: #fdecea;
+    --wa: #e7fbe0;
+  }
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, "DejaVu Sans", sans-serif; color: var(--ink); background: #fff; font-size: 10pt; line-height: 1.45; }
+  h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 13.5pt; margin: 16px 0 6px; }
+  h3 { font-size: 11pt; margin: 14px 0 4px; }
+  p { margin: 0 0 8px; }
+  .sub { color: var(--muted); font-size: 12pt; margin-bottom: 14px; }
+  .lead { font-size: 11pt; background: var(--surface); border-left: 4px solid var(--accent); padding: 12px 14px; border-radius: 4px; margin: 10px 0 4px; }
+  .page { break-after: page; }
+  .page:last-child { break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 9pt; }
+
+  /* Diagrama: quatro blocos */
+  .flow { display: flex; align-items: stretch; gap: 0; margin: 12px 0 4px; }
+  .box { flex: 1; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 10px 8px; background: #fff; }
+  .box .tag { font-size: 8pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .box .t { font-weight: 700; font-size: 10.5pt; margin: 2px 0 4px; }
+  .box .d { font-size: 8.8pt; color: var(--muted); line-height: 1.4; }
+  .arrow { width: 22px; display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 15pt; font-weight: 700; }
+
+  /* Passo a passo */
+  ol.steps { list-style: none; padding: 0; margin: 10px 0 0; counter-reset: s; }
+  ol.steps li { position: relative; padding: 0 0 6px 38px; counter-increment: s; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps li::after { content: ""; position: absolute; left: 11.5px; top: 26px; bottom: 2px; width: 1.5px; background: var(--line); }
+  ol.steps li:last-child::after { display: none; }
+  ol.steps b { display: block; }
+
+  .note { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 14px; margin-top: 8px; }
+  .note h3 { margin-top: 0; }
+  ul { margin: 4px 0 0; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+
+  /* Exemplo: mensagens */
+  .chat { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+  .col-title { font-size: 8.5pt; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .bubble { border-radius: 10px; padding: 10px 12px; font-size: 9.2pt; line-height: 1.45; white-space: pre-line; }
+  .in { background: var(--surface); border: 1px solid var(--line); }
+  .out { background: var(--wa); border: 1px solid #c9eebb; }
+  .out.alert { background: var(--warn-soft); border-color: #f5c2bd; }
+  .ok { color: var(--accent); font-weight: 700; }
+  .bad { color: var(--warn); font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.6pt; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .pill { display: inline-block; font-size: 8pt; font-weight: 700; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+  .p-ok { background: var(--accent-soft); color: var(--accent); }
+  .p-wip { background: #fff4d6; color: #8a5a00; }
+  .p-dep { background: #e8eefc; color: #1f4fbf; }
+  .p-next { background: var(--surface); color: var(--muted); }
+  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .ev { border-radius: 6px; padding: 8px 10px; font-size: 9.2pt; color: #fff; }
+  .ev.g { background: #0b8043; }
+  .ev.r { background: #d50000; }
+  footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+
+<section class="page">
+  <h1>Agenda automática de serviços</h1>
+  <div class="sub">Do pedido no WhatsApp à Google Agenda, com lembretes para quem vai executar · outubro de 2026</div>
+
+  <div class="lead">
+    Você <b>encaminha o pedido</b> para o número do robô no WhatsApp. Ele <b>lê a data</b>, <b>coloca na Google Agenda</b>
+    e <b>responde na mesma conversa</b> dizendo o que agendou. Antes do evento, todos os envolvidos são <b>lembrados</b>.
+  </div>
+
+  <h2>O fluxo em 4 blocos</h2>
+  <div class="flow">
+    <div class="box"><div class="tag">1 · Entrada</div><div class="t">Pedido encaminhado</div><div class="d">WhatsApp do robô ou etiqueta no Gmail</div></div>
+    <div class="arrow">→</div>
+    <div class="box"><div class="tag">2 · Leitura</div><div class="t">IA extrai os dados</div><div class="d">Serviço, órgão, processo, data, hora, local, contato</div></div>
+    <div class="arrow">→</div>
+    <div class="box"><div class="tag">3 · Agenda</div><div class="t">Evento criado</div><div class="d">Na Google Agenda, com convite à equipe e conferência da data</div></div>
+    <div class="arrow">→</div>
+    <div class="box"><div class="tag">4 · Avisos</div><div class="t">Resposta e lembretes</div><div class="d">Confirmação na hora; e-mail 2 dias e 1 dia antes; alarme no celular</div></div>
+  </div>
+
+  <h2>Passo a passo</h2>
+  <ol class="steps">
+    <li><b>O pedido chega como sempre chegou.</b> O cliente manda no WhatsApp ou por e-mail. Nada muda para ele.</li>
+    <li><b>Quem recebe encaminha para o robô.</b> No WhatsApp, encaminha a mensagem para o número do robô. No Gmail, coloca a etiqueta <i>pedidos-licitacao</i> no e-mail.</li>
+    <li><b>A IA lê a mensagem.</b> Separa o tipo de serviço, órgão, número do processo, data, hora, local e contato. Em editais com várias datas (impugnação, sessão, entrega), escolhe a do serviço e lista as outras.</li>
+    <li><b>O robô confere a data, sem depender da IA.</b> Veja na página 2 o que ele verifica.</li>
+    <li><b>O evento entra na Google Agenda.</b> Verde quando está tudo certo; vermelho, com "VERIFICAR" no título, quando há dúvida. As pessoas cadastradas recebem o convite por e-mail.</li>
+    <li><b>O robô responde na mesma conversa.</b> "Agendado: quinta-feira, 05/11 às 10:00", com os dados e o link do evento. Se algo estiver errado, basta corrigir no evento.</li>
+    <li><b>Lembretes.</b> E-mail para a Naty e a equipe 2 dias e 1 dia antes, e alarme no celular 2 dias, 1 dia, 12 h e 6 h antes. Se a data mudar na agenda, os lembretes acompanham.</li>
+  </ol>
+
+  <div class="note">
+    <h3>O que o robô não faz</h3>
+    <ul>
+      <li><b>Não lê as conversas do WhatsApp.</b> Ele só recebe o que é encaminhado para o número dele.</li>
+      <li><b>Só aceita pedidos de números autorizados.</b> Mensagem de outro número é ignorada.</li>
+      <li><b>Não fala com o cliente.</b> A resposta vai só para quem encaminhou o pedido.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="page">
+  <h2 style="margin-top:0">Exemplo com um pedido de teste</h2>
+  <p class="muted small">Pedido usado no teste de 13/10/2026. A leitura da IA é a real; a resposta mostra o formato da versão com WhatsApp.</p>
+  <div class="chat">
+    <div>
+      <div class="col-title">Mensagem encaminhada ao robô</div>
+      <div class="bubble in">Bom dia, Dra. Fernanda. Precisamos de representação presencial para a Concorrência Pública 15/2026 da Câmara Municipal de Belo Horizonte, agendada para 05/11 às 10:00. No aguardo de confirmação, Roberto Dias.</div>
+    </div>
+    <div>
+      <div class="col-title">Resposta do robô</div>
+      <div class="bubble out"><span class="ok">✓ Agendado</span>
+<b>Representação presencial – Concorrência Pública 15/2026 – Câmara Municipal de BH</b>
+
+<b>QUINTA-FEIRA, 05 DE NOVEMBRO DE 2026 às 10:00</b>
+A mensagem diz: "05/11 às 10:00"
+
+Órgão: Câmara Municipal de Belo Horizonte
+Processo: 15/2026
+Contato: Roberto Dias
+
+Se algo estiver errado, corrija direto no evento.
+Abrir na agenda: [link]</div>
+    </div>
+  </div>
+
+  <h2>Conferências automáticas da data</h2>
+  <p>Data errada na agenda é o problema que este sistema existe para evitar. Por isso a data não depende só da IA: o robô confere cada pedido com regras fixas.</p>
+  <table>
+    <tr><th style="width:42%">O robô verifica</th><th>Exemplo</th></tr>
+    <tr><td>O dia da semana bate com a data?</td><td>"Segunda, 15/10", mas 15/10/2026 é uma quinta</td></tr>
+    <tr><td>A data já passou ou está longe demais?</td><td>Pedido para uma data de ontem; data a mais de 6 meses</td></tr>
+    <tr><td>Tem horário?</td><td>"Sessão dia 20/10", sem hora: entra como dia inteiro</td></tr>
+    <tr><td>Mensagem encaminhada com data relativa?</td><td>"Amanhã" escrito pelo cliente dias antes de ser encaminhado</td></tr>
+    <tr><td>A própria IA ficou em dúvida?</td><td>Mais de uma data possível para o serviço</td></tr>
+    <tr><td>Está em cima da hora?</td><td>Faltam menos de 48 horas: aviso de URGENTE</td></tr>
+  </table>
+
+  <div class="colors">
+    <div>
+      <div class="col-title">Sem dúvida</div>
+      <div class="ev g">Representação presencial – Concorrência 15/2026 – Câmara BH</div>
+      <p class="small muted" style="margin-top:4px">Evento verde. Resposta: "Agendado".</p>
+    </div>
+    <div>
+      <div class="col-title">Com dúvida</div>
+      <div class="ev r">⚠ VERIFICAR: Sessão Pregão 45/2026 – Pref. Campinas</div>
+      <p class="small muted" style="margin-top:4px">Evento vermelho. Resposta: "Agendei, mas CONFIRA a data", com o motivo.</p>
+    </div>
+  </div>
+  <div class="bubble out alert" style="margin-top:10px"><span class="bad">⚠ Agendei, mas CONFIRA a data</span>
+CONFLITO DE DATA: a mensagem diz "segunda-feira", mas 15/10/2026 cai numa quinta-feira. Uma das duas informações está errada. CONFIRA COM O CLIENTE.</div>
+  <p class="small muted" style="margin-top:6px">Mesmo com dúvida o evento é criado. Ele fica na agenda, marcado e com lembretes, até alguém corrigir. Nenhum pedido se perde por falta de resposta.</p>
+</section>
+
+<section class="page">
+  <h2 style="margin-top:0">Lembretes</h2>
+  <table>
+    <tr><th style="width:30%">Quem</th><th style="width:35%">Como</th><th>Quando</th></tr>
+    <tr><td>Dona da agenda (Naty)</td><td>Alarme do Google no celular</td><td>2 dias, 1 dia, 12 h e 6 h antes</td></tr>
+    <tr><td>Naty e equipe cadastrada</td><td>E-mail</td><td>2 dias e 1 dia antes (ajustável)</td></tr>
+    <tr><td>Equipe cadastrada</td><td>Convite da Google Agenda</td><td>Na hora em que o pedido é agendado</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:6px">O robô confere a agenda a cada 10 minutos. Se alguém mudar a data do evento, os lembretes passam a valer para a nova data.</p>
+
+  <h2>Onde roda e quanto custa</h2>
+  <table>
+    <tr><th style="width:30%">Peça</th><th style="width:40%">O que faz</th><th>Custo hoje</th></tr>
+    <tr><td>n8n (automação)</td><td>Liga tudo: recebe, chama a IA, agenda, avisa</td><td>Grátis (servidor gratuito)</td></tr>
+    <tr><td>Groq (IA)</td><td>Lê o pedido e extrai os dados</td><td>Grátis</td></tr>
+    <tr><td>Google Agenda e Gmail</td><td>Agenda, convites e e-mails</td><td>Grátis</td></tr>
+    <tr><td>WhatsApp oficial (Meta)</td><td>Recebe o pedido e responde</td><td>Grátis para receber e responder</td></tr>
+  </table>
+  <ul class="small" style="margin-top:8px">
+    <li><b>Número do robô:</b> precisa ser um número exclusivo, que não esteja em uso no aplicativo do WhatsApp.</li>
+    <li><b>Servidor gratuito:</b> tem pouca memória e pode reiniciar em uso pesado, ficando 1–2 minutos fora do ar. Com mais volume, um servidor pago custa a partir de cerca de US$ 5 por mês.</li>
+    <li><b>Lembrete pelo WhatsApp:</b> mensagem que o robô inicia sozinho é cobrada pela Meta (centavos por mensagem) e o texto precisa ser aprovado antes. Por isso ficou para a próxima etapa.</li>
+  </ul>
+
+  <h2>Situação atual</h2>
+  <table>
+    <tr><th style="width:62%">Item</th><th>Situação</th></tr>
+    <tr><td>Leitura do pedido pela IA e criação do evento na Google Agenda</td><td><span class="pill p-ok">Pronto e testado</span></td></tr>
+    <tr><td>Conferências automáticas da data</td><td><span class="pill p-ok">Pronto e testado</span></td></tr>
+    <tr><td>Entrada e resposta pelo WhatsApp</td><td><span class="pill p-wip">Em montagem</span></td></tr>
+    <tr><td>Lembretes por e-mail para a equipe</td><td><span class="pill p-wip">Em montagem</span></td></tr>
+    <tr><td>App do WhatsApp na Meta e número exclusivo para o robô</td><td><span class="pill p-dep">Depende de vocês</span></td></tr>
+    <tr><td>Lista de quem deve ser avisado (nomes e e-mails)</td><td><span class="pill p-dep">Depende de vocês</span></td></tr>
+    <tr><td>Acesso à Google Agenda da Naty (ela autoriza uma vez)</td><td><span class="pill p-dep">Depende de vocês</span></td></tr>
+    <tr><td>Lembretes pelo WhatsApp · ler áudios · ler PDF de edital</td><td><span class="pill p-next">Próximas etapas</span></td></tr>
+    <tr><td>Módulo de notas fiscais</td><td><span class="pill p-next">Segundo sistema</span></td></tr>
+  </table>
+</section>
+
+</body>
+</html>

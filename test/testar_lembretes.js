@@ -104,7 +104,7 @@ assert.equal(r.length, 1);
 assert.deepEqual(Object.keys(r[0].extendedProperties.private).filter(k => k.startsWith('lembrete')).sort(), ['lembrete_1440', 'lembrete_2880']);
 console.log('ok  pedido urgente: 1 aviso imediato, os de 12h/6h continuam agendados');
 
-// 10. Texto do cliente não quebra o HTML do Telegram
+// 10. Texto do cliente não quebra o HTML do e-mail
 r = calcular([ev({ summary: 'Pregão <urgente> & cia', location: 'Sala <3>' })]);
 assert.ok(r[0].html.includes('Pregão &lt;urgente&gt; &amp; cia') && r[0].html.includes('Sala &lt;3&gt;'));
 console.log('ok  HTML escapado');

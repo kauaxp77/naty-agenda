@@ -51,7 +51,9 @@ const whatsapp = (name, pos, texto) => ({
   // Se o WhatsApp recusar (token vencido, número fora da lista de teste...), o aviso vai por e-mail
   onError: 'continueErrorOutput',
 });
-// Linha extra no e-mail quando ele substitui uma resposta do WhatsApp que falhou
+// Linha extra no e-mail quando ele substitui uma resposta do WhatsApp que falhou.
+// Os nós de e-mail não têm onError: se o e-mail também falhar, a execução fica marcada com erro
+// no n8n (aparece em Executions), em vez de passar como sucesso sem ninguém ter sido avisado.
 const NOTA_WHATSAPP_FALHOU = "{{ $json.error ? '<p><i>Este aviso foi por e-mail porque a resposta pelo WhatsApp falhou: ' + " +
   "JSON.stringify($json.error).slice(0, 300).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</i></p>' : '' }}";
 const ifNode = (name, pos, left, operator) => ({
@@ -136,14 +138,12 @@ const nodes = [
   whatsapp('WhatsApp: agendado', [2000, -300],
     VAL + ".resposta_whatsapp + '\\n\\nAbrir na agenda: ' + " + EVT + '.htmlLink'),
   gmail('E-mail: agendado', [2220, -160], '={{ ' + NORM + '.email_naty }}', '={{ ' + VAL + '.assunto_email }}',
-    '={{ ' + VAL + ".resposta_html }}<br><br><a href=\"{{ " + EVT + '.htmlLink }}">Abrir na agenda</a>' + NOTA_WHATSAPP_FALHOU,
-    { onError: 'continueRegularOutput' }),
+    '={{ ' + VAL + ".resposta_html }}<br><br><a href=\"{{ " + EVT + '.htmlLink }}">Abrir na agenda</a>' + NOTA_WHATSAPP_FALHOU),
   code('Montar aviso de falha', [1560, 160], '04_aviso_falha.js'),
   ifNode('Avisar pelo WhatsApp?', [1780, 160], '={{ ' + NORM + ".canal === 'whatsapp' }}", VERDADEIRO),
   whatsapp('WhatsApp: NÃO agendado', [2000, 60], FALHA + '.texto_whatsapp'),
   gmail('E-mail: NÃO agendado', [2220, 200], '={{ ' + NORM + '.email_naty }}', '={{ ' + FALHA + '.assunto_email }}',
-    '={{ ' + FALHA + '.html_email }}' + NOTA_WHATSAPP_FALHOU,
-    { onError: 'continueRegularOutput' }),
+    '={{ ' + FALHA + '.html_email }}' + NOTA_WHATSAPP_FALHOU),
 ];
 
 const link = (to, idx = 0) => ({ node: to, type: 'main', index: idx });
