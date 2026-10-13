@@ -135,4 +135,25 @@ console.log('ok  texto do Telegram com Markdown válido (inclusive com _ * ` [ d
 assert.equal(validar(base).evento.extendedProperties.private.naty_bot, '1');
 console.log('ok  evento marcado como do robô');
 
+// 12. "Data relativa" só quando é relativa de verdade. Caso real (13/10/2026): "05/11 às 10:00"
+// voltou com data_relativa=true só porque o ano não estava escrito, e gerou alerta falso.
+const ehRelativa = a => a.startsWith('A data foi escrita de forma relativa');
+for (const trecho of ['agendada para 05/11 às 10:00', 'dia 5 de novembro às 10h', '1º de novembro, 10h', 'em 05 / 11']) {
+  r = validar({ ...base, data: '2026-11-05', hora_inicio: '10:00', trecho_da_data: trecho, data_relativa: true });
+  assert.ok(!r.alertas.some(ehRelativa), trecho + ' → ' + r.alertas);
+}
+for (const trecho of ['amanhã às 22h', 'sexta que vem, 9h', 'daqui a 3 dias']) {
+  r = validar({ ...base, trecho_da_data: trecho, data_relativa: true });
+  assert.ok(r.alertas.some(ehRelativa), trecho + ' → ' + r.alertas);
+}
+assert.ok(req.messages[0].content.includes('NÃO é relativa, mesmo sem o ano'), 'regra no prompt');
+console.log('ok  "05/11" sem ano não vira alerta de data relativa; "amanhã" continua virando');
+
+// 13. Ano omitido + data que acabou de passar: "05/10" lido em 07/10 vira 05/10/2027.
+r = validar({ ...base, data: '2027-10-05', trecho_da_data: 'dia 05/10 às 9h' });
+assert.ok(r.alertas.some(a => a.includes('mais de 6 meses')), r.alertas);
+r = validar({ ...base, data: '2027-03-01' }); // ~5 meses: sem alerta de ano
+assert.ok(!r.alertas.some(a => a.includes('mais de 6 meses')), r.alertas);
+console.log('ok  data a mais de 6 meses pede para conferir o ano');
+
 console.log('\nTodos os testes passaram.');

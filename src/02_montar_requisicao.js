@@ -6,12 +6,12 @@ Leia a mensagem e preencha o esquema. Regras:
 - Nunca invente. Campo sem informação = string vazia.
 - "data" no formato AAAA-MM-DD; horas em HH:MM (24h), horário de Brasília.
 - Datas no formato brasileiro: 05/11 é 5 de novembro. Nunca leia como mês/dia.
-- Datas relativas ("amanhã", "sexta que vem") devem ser resolvidas a partir da DATA DE REFERÊNCIA informada, consultando o CALENDÁRIO fornecido. Marque data_relativa=true e explique em "ambiguidades" como resolveu.
-- Se o ano não estiver escrito, use a próxima ocorrência a partir da data de referência e registre isso em "ambiguidades".
+- Datas relativas ("amanhã", "sexta que vem", "daqui a 3 dias") devem ser resolvidas a partir da DATA DE REFERÊNCIA informada, consultando o CALENDÁRIO fornecido. Marque data_relativa=true e explique em "ambiguidades" como resolveu.
+- Data com dia e mês escritos (ex.: "05/11", "5 de novembro") NÃO é relativa, mesmo sem o ano: data_relativa=false. Se o ano não estiver escrito, use a próxima ocorrência a partir da data de referência. Ano omitido é normal: sozinho, não reduz a confiança e não vai em "ambiguidades".
 - "trecho_da_data": copie LITERALMENTE o trecho da mensagem de onde tirou a data e a hora.
 - "dia_da_semana_citado": se a mensagem escrever um dia da semana junto da data principal, copie-o (ex.: "segunda-feira"). Se não escrever, deixe vazio. Não calcule o dia da semana você mesmo.
 - Mensagens de licitação costumam ter várias datas (impugnação, abertura de propostas, sessão de disputa, entrega). A data principal é aquela em que a empresa precisa EXECUTAR o serviço pedido. Liste as demais em "outras_datas". Se não for possível saber qual é a principal, diga isso em "ambiguidades" e use confianca "baixa".
-- "confianca": "alta" somente se data e hora estão escritas explicitamente e não há conflito; "media" se algo foi deduzido; "baixa" se há dúvida real.
+- "confianca": "alta" somente se dia, mês e hora estão escritos explicitamente (o ano pode faltar) e não há conflito; "media" se algo foi deduzido; "baixa" se há dúvida real.
 - "resumo": título curto para a agenda, ex.: "Sessão Pregão 45/2026 – Pref. de Campinas".
 - eh_pedido_de_servico=false se a mensagem não pede nenhum serviço com data (propaganda, conversa, aviso genérico).`;
 

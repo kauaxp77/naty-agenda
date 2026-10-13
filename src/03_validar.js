@@ -59,11 +59,16 @@ if (citado && citado !== inicio.weekday) {
     inicio.toFormat('dd/MM/yyyy') + ' cai numa ' + diaSemanaReal + '. Uma das duas informações está errada. CONFIRA COM O CLIENTE.');
 }
 if (inicio < agora) alertas.push('A data identificada JÁ PASSOU (' + inicio.toFormat('dd/MM/yyyy HH:mm') + ').');
-if (inicio > agora.plus({ days: 365 })) alertas.push('A data está a mais de 1 ano de distância. Confira o ano.');
+// 6 meses, não 1 ano: com o ano omitido, uma data que acabou de passar ("05/10" lido em 13/10)
+// vira a do ano seguinte, a ~11 meses. Serviço de licitação raramente é marcado com 6 meses de antecedência.
+if (inicio > agora.plus({ days: 180 })) alertas.push('A data está a mais de 6 meses de distância. Confira o ano.');
 const horasAte = inicio.diff(agora, 'hours').hours;
 if (horasAte >= 0 && horasAte < 48) alertas.push('URGENTE: faltam só ' + Math.floor(horasAte) + 'h. Alguns lembretes (2 dias / 1 dia antes) não vão disparar.');
 if (d.confianca !== 'alta') alertas.push('Confiança da IA: ' + d.confianca.toUpperCase() + '.');
-if (d.data_relativa) alertas.push('A data foi escrita de forma relativa ("amanhã", "sexta que vem"...) e foi calculada a partir de ' + p.referencia_extenso + '.');
+// A IA às vezes marca "relativa" só porque o ano não foi escrito ("05/11 às 10:00"). Com dia e mês
+// escritos no trecho, a data não é relativa, e o alerta seria ruído que ensina a Naty a ignorar alertas.
+const temDiaEMes = /\d{1,2}\s*\/\s*\d{1,2}|\d{1,2}º?\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/.test(semAcento(d.trecho_da_data));
+if (d.data_relativa && !temDiaEMes) alertas.push('A data foi escrita de forma relativa ("amanhã", "sexta que vem"...) e foi calculada a partir de ' + p.referencia_extenso + '.');
 for (const a of d.ambiguidades || []) alertas.push(a);
 
 // ---- 4. Textos ----

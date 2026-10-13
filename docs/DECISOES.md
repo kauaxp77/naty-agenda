@@ -39,7 +39,10 @@ O porquê de cada escolha técnica, as alternativas descartadas e o preço pago 
 **Decisão:**
 - A IA **copia** o dia da semana citado e o trecho original da data; quem compara é o código (`src/03_validar.js`), que é testado.
 - A IA recebe um **calendário pronto** de 60 dias para consultar, em vez de calcular.
-- Data no passado, a mais de 1 ano, urgência < 48h e falta de horário viram alertas determinísticos.
+- Data no passado, a mais de 6 meses, urgência < 48h e falta de horário viram alertas determinísticos.
+- O código também filtra alertas falsos da IA: `data_relativa=true` com dia e mês escritos no trecho ("05/11 às 10:00") não gera alerta.
+
+**Correção (13/10/2026):** num teste real, a IA marcou "05/11 às 10:00" como data relativa e confiança média só porque o ano não estava escrito. A Naty receberia um alerta falso em quase todo pedido, e alerta que aparece sempre deixa de ser lido. O prompt passou a dizer que ano omitido é normal, e o código ignora o `data_relativa` nesse caso. Como ano omitido deixou de ser tratado como ambiguidade, o alerta "confira o ano" caiu de 1 ano para 6 meses: uma data que acabou de passar, escrita sem ano, vira a do ano seguinte (~11 meses à frente) e agora é pega.
 
 **Preço:** nenhum relevante.
 

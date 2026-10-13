@@ -77,7 +77,7 @@ Campos do esquema:
 | `data` (AAAA-MM-DD), `hora_inicio`, `hora_fim` (HH:MM) | string | Início e fim do evento |
 | `trecho_da_data` | string | Mostrado na confirmação, para a Naty comparar com o original |
 | `dia_da_semana_citado` | string | Comparado em código com o dia real da data |
-| `data_relativa` | boolean | Gera alerta explicando como a data foi calculada |
+| `data_relativa` | boolean | Gera alerta explicando como a data foi calculada, **exceto** se `trecho_da_data` tem dia e mês escritos ("05/11", "5 de novembro"): a IA às vezes marca `true` só porque o ano faltou |
 | `outras_datas[]` | `{data, hora, descricao}` | Listadas na confirmação e na descrição do evento |
 | `confianca` | `alta` / `media` / `baixa` | Diferente de `alta` → alerta |
 | `ambiguidades[]` | string | Cada uma vira um alerta |
@@ -91,7 +91,7 @@ Campos do esquema:
 | Data ausente ou impossível (ex.: 30/02) | **Falha** → "NÃO agendado" |
 | Dia da semana citado ≠ dia real da data | Alerta **CONFLITO DE DATA** |
 | Data no passado | Alerta "JÁ PASSOU" |
-| Data a mais de 365 dias | Alerta "confira o ano" |
+| Data a mais de 180 dias | Alerta "confira o ano" (pega "05/10" escrito sem ano logo depois de 05/10, que vira o ano seguinte) |
 | Faltam menos de 48h | Alerta **URGENTE** (os lembretes de 2d/1d não vão disparar) |
 | Sem hora | Evento de **dia inteiro** + alerta "HORÁRIO NÃO ENCONTRADO" |
 | `hora_fim` ausente ou antes do início | Fim = início + `duracao_padrao_horas` |

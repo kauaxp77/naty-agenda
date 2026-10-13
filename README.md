@@ -27,7 +27,7 @@ Automação em **n8n** para a empresa de licitações da Naty. Ela recebe pedido
 |---|---|
 | 📥 **Recebe pedidos** | E-mails com o rótulo `pedidos-licitacao` no Gmail, ou texto colado num formulário (pedidos que chegam por WhatsApp/telefone). |
 | 🤖 **Extrai os dados com IA** | Órgão, tipo de serviço, nº do processo, local, contato, **data e hora**, e outras datas citadas (impugnação, abertura, disputa). |
-| 🔎 **Confere a data sem IA** | Dia da semana bate com a data? A data já passou? Está a mais de 1 ano? Faltam menos de 48h? Cada problema vira um alerta visível. |
+| 🔎 **Confere a data sem IA** | Dia da semana bate com a data? A data já passou? Está a mais de 6 meses? Faltam menos de 48h? Cada problema vira um alerta visível. |
 | 📅 **Agenda na hora** | Cria o evento no Google Agenda **antes** de pedir confirmação, marcado como `⏳ [A CONFIRMAR]`. |
 | ✅ **Pede confirmação no Telegram** | Mostra a data **por extenso** e o trecho original da mensagem, com botões **✅ Está certo / ❌ Está errado**. |
 | ⏰ **Lembra no Telegram** | 2 dias, 1 dia, 12h e 6h antes, lendo direto da agenda (se a data mudar na agenda, os lembretes acompanham). |
