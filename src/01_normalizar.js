@@ -46,7 +46,31 @@ let texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_n
 if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
   // Veio do WhatsApp (nó "WhatsApp Trigger": um item por mensagem recebida)
   const m = (j.messages || [])[0];
-  if (!m) return [];                     // aviso de entrega/leitura, não é mensagem
+  if (!m) {
+    // Aviso de status (o gatilho só repassa os de falha). A Meta aceita a resposta do robô e só
+    // depois avisa que não entregou: conta bloqueada, fora da janela de 24h... Sem este aviso,
+    // a falha passa calada, porque o nó de envio deu certo e o e-mail de reserva não dispara.
+    const falhas = $input.all().flatMap(i => i.json.statuses || []).filter(s => s.status === 'failed');
+    if (!falhas.length) return [];
+    return [{
+      json: {
+        ...CONFIG,
+        canal: 'whatsapp_status',
+        falhas_entrega: falhas.map(s => {
+          const e = (s.errors || [])[0] || {};
+          const quando = DateTime.fromSeconds(Number(s.timestamp) || 0);
+          return {
+            para: s.recipient_id || '',
+            mensagem_id: s.id || '',
+            quando_iso: (Number(s.timestamp) && quando.isValid ? quando : DateTime.now()).setZone(CONFIG.fuso).toISO(),
+            codigo: e.code || '',
+            titulo: e.title || e.message || '',
+            detalhe: (e.error_data && e.error_data.details) || e.message || '',
+          };
+        }),
+      },
+    }];
+  }
   if (!autorizado(m.from)) return [];    // número fora da lista: ignora
   const nome = ((j.contacts || [])[0] || {}).profile?.name;
   canal = 'whatsapp';

@@ -153,3 +153,13 @@ alter role n8n set search_path = n8n;
 - Números de telefone nos exemplos e testes são fictícios. O número real que aparecia num teste foi trocado em todo o histórico.
 
 **Preço:** o endereço do n8n fica conhecido; a proteção do editor é a senha do dono e a do formulário, a Basic Auth.
+
+## D15. Aviso quando a Meta não entrega a resposta
+**Contexto (14/10/2026):** a Meta bloqueou a conta do WhatsApp Business (erro 131031). O envio da resposta dava certo, porque a Meta devolve o ID da mensagem, e a falha só chegava depois, como status "failed" no webhook, que o gatilho descartava. Ninguém recebia resposta e nada indicava erro.
+**Decisão:** o gatilho passa a repassar os status "failed", e só esses. Cada falha vira e-mail para a Naty com número, horário, código do erro e o que fazer.
+
+**Alternativas descartadas:**
+- **Repassar todos os status:** "enviado", "entregue" e "lido" gerariam 3 execuções a mais por resposta, enchendo o histórico no plano grátis.
+- **Reenviar por e-mail o conteúdo da resposta:** o status só traz o ID da mensagem, não o texto. Cruzar os dois exigiria guardar cada resposta enviada.
+
+**Preço:** o e-mail diz que algo não chegou, mas não qual pedido era; a Naty confere na agenda pelo horário. Se o Gmail também falhar, ninguém fica sabendo.

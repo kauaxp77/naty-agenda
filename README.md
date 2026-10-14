@@ -32,7 +32,7 @@ Automação em **n8n** para a empresa de licitações da Naty. Os pedidos de ser
 | 🗂️ **Comandos no WhatsApp** | **"agenda"** → lista dos serviços dos próximos 60 dias, por dia, com ⚠️ nos que estão para conferir. **"oi"/"menu"** → botões *📅 Ver agenda* e *➕ Como agendar*. Só vale se a mensagem for só a palavra; o resto é pedido. Não passa pela IA. |
 | 💬 **Responde na mesma conversa** | No WhatsApp, com a data **por extenso**, o trecho original da mensagem e os alertas. Pedido por e-mail ou formulário recebe a resposta por e-mail. |
 | ⏰ **Lembra por e-mail** | A Naty e a equipe (`emails_equipe`) recebem o convite do Google e um e-mail 2 dias e 1 dia antes, lido direto da agenda (se a data mudar na agenda, os lembretes acompanham). |
-| 🚨 **Avisa quando algo falha** | Pedido que não pôde ser agendado (áudio, falha da IA, erro do Google) gera aviso no WhatsApp ou por e-mail. WhatsApp fora → o aviso vai por e-mail. Agenda ilegível → e-mail "lembretes PARADOS". |
+| 🚨 **Avisa quando algo falha** | Pedido que não pôde ser agendado (áudio, falha da IA, erro do Google) gera aviso no WhatsApp ou por e-mail. WhatsApp fora → o aviso vai por e-mail. Resposta que a Meta aceitou mas **não entregou** (conta bloqueada, mais de 24h desde a última mensagem) → e-mail com o motivo. Agenda ilegível → e-mail "lembretes PARADOS". |
 
 ## Como funciona
 
@@ -123,9 +123,10 @@ Custo mensal atual: **R$ 0**. Quando o plano grátis apertar, os upgrades estão
 │   ├── 04_aviso_falha.js                  ·  W1: monta o aviso "NÃO agendado" (WhatsApp e e-mail)
 │   ├── 05_listar_eventos.js               ·  W1: comando "agenda": próximos serviços, agrupados por dia
 │   ├── 06_menu.js                         ·  W1: comandos "menu" (botões) e "ajuda"
+│   ├── 07_aviso_nao_entregue.js           ·  W1: e-mail quando a Meta não entrega uma resposta
 │   ├── 10_lembretes_config.js             ·  W2: CONFIG + janela de busca
 │   └── 11_calcular_lembretes.js           ·  W2: decide quais lembretes enviar agora e monta os e-mails
-├── test/                                  ← testes da lógica (44 verificações)
+├── test/                                  ← testes da lógica (47 verificações)
 ├── deploy/
 │   ├── RENDER.md                          ← hospedagem atual: Render + Supabase
 │   ├── LEIA-ME.md                         ← alternativa: VPS / Oracle Cloud com Docker + Caddy
@@ -150,10 +151,11 @@ Requer Node.js 18+.
 
 ```bash
 npm install                        # instala o luxon (datas), usado só nos testes
-npm test                           # roda os 44 testes (os três arquivos abaixo)
+npm test                           # roda os 47 testes (os quatro arquivos abaixo)
 node test/testar_validacao.js      # 26 testes: entradas (WhatsApp, e-mail, formulário), datas, VERIFICAR, respostas, avisos de falha
 node test/testar_lembretes.js      # 13 testes: lembretes por e-mail, destinatários, remarcação, n8n fora do ar
 node test/testar_comandos.js       # 5 testes: comandos "agenda"/"menu"/"ajuda", botões, lista de eventos
+node test/testar_entrega.js        # 3 testes: aviso por e-mail quando a Meta não entrega a resposta
 npm run build                      # (= node build.js) gera workflow-naty-agenda.json e workflow-naty-lembretes.json
 ```
 

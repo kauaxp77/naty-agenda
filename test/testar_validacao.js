@@ -10,7 +10,7 @@ Settings.now = () => new Date('2026-10-07T10:00:00-03:00').valueOf(); // "hoje" 
 const src = f => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8');
 const rodarTodos = (codigo, entrada, nos = {}) =>
   new Function('$input', '$', 'DateTime', codigo)(
-    { first: () => ({ json: entrada }) },
+    { first: () => ({ json: entrada }), all: () => [{ json: entrada }] },
     nome => ({ first: () => ({ json: nos[nome] }) }),
     DateTime,
   );

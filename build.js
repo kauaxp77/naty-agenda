@@ -98,8 +98,9 @@ const nodes = [
     webhookId: 'e4d1b3f5-8a2c-4f6e-b7d9-0c1e2f3a4b5c',
     // Credencial "WhatsApp OAuth API": ID do app + chave secreta do app (Meta). Ao ativar o workflow,
     // o n8n registra este endereço no app da Meta. Só funciona com o workflow ATIVO.
-    // messageStatusUpdates vazio: avisos de "entregue"/"lido" não disparam execuções.
-    parameters: { updates: ['messages'], options: { messageStatusUpdates: [] } },
+    // messageStatusUpdates: só "failed". "Entregue"/"lido" não disparam execuções; a falha vira e-mail
+    // (a Meta aceita a resposta e só depois avisa que não entregou, por exemplo com a conta bloqueada).
+    parameters: { updates: ['messages'], options: { messageStatusUpdates: ['failed'] } },
   },
   {
     id: id(), name: 'Gmail: novo pedido', type: 'n8n-nodes-base.gmailTrigger', typeVersion: 1.2, position: [0, 0],
@@ -132,6 +133,10 @@ const nodes = [
     },
   },
   code('Normalizar entrada', [240, 0], '01_normalizar.js'),
+  // Aviso da Meta de que uma resposta do robô não foi entregue: vira e-mail para a Naty
+  ifNode('Resposta não entregue?', [460, 220], '={{ ($json.falhas_entrega || []).length > 0 }}', VERDADEIRO),
+  code('Montar aviso de não entrega', [680, 380], '07_aviso_nao_entregue.js'),
+  gmail('E-mail: resposta não entregue', [900, 380], '={{ ' + NORM + '.email_naty }}', '={{ $json.assunto }}', '={{ $json.html }}'),
   // Comandos do WhatsApp ("agenda", "menu", "ajuda"): respondem sem passar pela IA
   ifNode('É comando?', [460, 0], '={{ $json.comando }}', { type: 'string', operation: 'notEmpty', singleValue: true }),
   ifNode('Pediu a agenda?', [680, -460], "={{ $json.comando === 'agenda' }}", VERDADEIRO),
@@ -199,7 +204,9 @@ const connections = {
   'WhatsApp: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Gmail: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Formulário: colar pedido': { main: [[link('Normalizar entrada')]] },
-  'Normalizar entrada': { main: [[link('É comando?')]] },
+  'Normalizar entrada': { main: [[link('Resposta não entregue?')]] },
+  'Resposta não entregue?': { main: [[link('Montar aviso de não entrega')], [link('É comando?')]] },
+  'Montar aviso de não entrega': { main: [[link('E-mail: resposta não entregue')]] },
   'É comando?': { main: [[link('Pediu a agenda?')], [link('Dá para ler?')]] },
   'Pediu a agenda?': { main: [[link('Ler próximos eventos')], [link('Montar menu')]] },
   'Ler próximos eventos': { main: [[link('Montar lista de eventos')]] },

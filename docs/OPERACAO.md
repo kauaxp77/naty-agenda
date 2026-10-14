@@ -58,6 +58,16 @@ O evento foi criado, mas **vermelho**, com `⚠️ VERIFICAR:` no título: o rob
 ### ✉️ E-mail com a nota "a resposta pelo WhatsApp falhou"
 O pedido foi processado, mas o robô não conseguiu responder no WhatsApp; o aviso foi por e-mail. O motivo está na nota. Veja [O robô não respondeu no WhatsApp](#o-robô-não-respondeu-no-whatsapp). O mais comum é o token temporário vencido.
 
+### ⚠️ "Resposta do WhatsApp NÃO entregue"
+A Meta aceitou a resposta do robô e depois não entregou. O pedido pode ter entrado na agenda normalmente; quem mandou é que não recebeu a confirmação.
+
+1. Confira na agenda se o pedido entrou (o e-mail traz o horário) e, se precisar, avise a pessoa por outro meio.
+2. Veja o código no e-mail:
+   - `131031` (*Business Account locked*): a Meta bloqueou a conta do WhatsApp Business. Nenhuma resposta chega até a conta ser liberada. Central de suporte para empresas da Meta (business.facebook.com/business-support-home) → veja a restrição e peça análise. Visto em 14/10/2026, no número de teste.
+   - `131047`: mais de 24h desde a última mensagem da pessoa para o robô. Fora dessa janela só vai mensagem paga, com modelo aprovado.
+   - `131026`: o número não pôde receber (WhatsApp desatualizado, número sem WhatsApp ou que não aceitou os termos).
+3. Este aviso sai pelo Gmail: se o acesso ao Google cair, ele também não chega.
+
 ### 🚨 "Os lembretes da agenda estão PARADOS"
 O workflow 2 não conseguiu ler a Agenda Google. **Enquanto isso, nenhum lembrete por e-mail sai.** Os alarmes do app do Google Agenda continuam funcionando.
 
@@ -104,6 +114,7 @@ Primeiro veja em n8n → Executions do workflow 1 se a mensagem chegou.
 | Execução que para em "Normalizar entrada", sem resposta | Número fora de `whatsapp_autorizados` (ou foi só um aviso de entregue/lido) | Coloque o número no formato certo: DDI + DDD + número, só dígitos (ex.: `5511987654321`). Com ou sem o 9, as duas formas funcionam |
 | Resposta chegou por e-mail, com a nota "a resposta pelo WhatsApp falhou" e erro `190` (token) | Token temporário do painel da Meta: **vence em 24h** | Crie um **token permanente** de Usuário do sistema (Gerenciador de Negócios → Usuários do sistema) e atualize a credencial "WhatsApp API" |
 | Idem, com erro `131030` (destinatário fora da lista permitida) | O **número de teste** da Meta só envia para destinatários verificados (até 5). Em DDD fora de 11–19, 21, 22, 24, 27 e 28, o WhatsApp identifica o celular **sem o 9** (ex.: `556181234567`), e a lista só tem a forma com o 9 | Adicione o número à lista de destinatários (Meta → WhatsApp → Etapa 1 → "Para"). Nesses DDDs, adicione **também sem o 9**. Visto no 1º teste real, 14/10/2026 (DDD 61) |
+| O robô agenda, mas a resposta não chega no WhatsApp, e chega o e-mail "Resposta do WhatsApp NÃO entregue" com `131031` | A Meta bloqueou a conta do WhatsApp Business. O envio é aceito e a falha só vem depois | Central de suporte para empresas da Meta → restrição da conta → pedir análise. Veja [Quando chega um alerta](#quando-chega-um-alerta) |
 | Erro ao ativar: *already has a webhook subscription* | Só pode haver **um** WhatsApp Trigger por app da Meta. Outro workflow (ou um registro de teste) está com ele | Desative o outro workflow que usa o mesmo app, ou pare o teste no editor, e ative de novo |
 | O *Testar* do painel da Meta chega ao n8n, mas mensagens reais não (nem no número de teste) | A conta do WhatsApp Business não está ligada ao app. O n8n registra o webhook no app, mas não faz essa ligação | `POST <ID da conta>/subscribed_apps` no Explorador da Graph API (SETUP.md, passo 9). Resposta esperada: `{"success": true}`. Visto no 1º teste real, 14/10/2026 |
 | Resposta "só leio mensagens de texto" | Áudio, imagem, documento, vídeo ou figurinha | Comportamento esperado: mandar o pedido escrito |

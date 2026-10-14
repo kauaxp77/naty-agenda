@@ -36,14 +36,17 @@ O robô **não lê as conversas do WhatsApp**. Ele só recebe o que é mandado a
 
 ## Workflow 1: Pedidos → Agenda
 
-Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`). 17 nós.
+Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`). 26 nós.
 
 | # | Nó | Tipo | O que faz |
 |---|---|---|---|
-| 1a | **WhatsApp: novo pedido** | WhatsApp Trigger | Recebe as mensagens mandadas ao número do robô (WhatsApp Cloud API, oficial da Meta). Credencial "WhatsApp OAuth API" (ID do app + chave secreta do app). Ao **ativar** o workflow, o n8n registra o webhook no app da Meta: com o workflow inativo, nada chega. O n8n confere a assinatura `x-hub-signature-256` de cada chamada com a chave secreta. Só um WhatsApp Trigger por app da Meta. Avisos de entregue/lido são filtrados (`messageStatusUpdates` vazio). |
+| 1a | **WhatsApp: novo pedido** | WhatsApp Trigger | Recebe as mensagens mandadas ao número do robô (WhatsApp Cloud API, oficial da Meta). Credencial "WhatsApp OAuth API" (ID do app + chave secreta do app). Ao **ativar** o workflow, o n8n registra o webhook no app da Meta: com o workflow inativo, nada chega. O n8n confere a assinatura `x-hub-signature-256` de cada chamada com a chave secreta. Só um WhatsApp Trigger por app da Meta. Dos avisos de status, só passam os de **falha** (`messageStatusUpdates: ['failed']`); entregue e lido não geram execução. |
 | 1b | **Gmail: novo pedido** | Gmail Trigger | Verifica a cada minuto e-mails que batem com `label:pedidos-licitacao`. Lê o e-mail completo (`simple: false`). |
 | 1c | **Formulário: colar pedido** | Form Trigger | Formulário com "Texto do pedido" e "Origem" (WhatsApp/Telefone/Outro), protegido por usuário e senha (Basic Auth). Reserva e testes. |
-| 2 | **Normalizar entrada** | Code (`src/01_normalizar.js`) | Unifica as três entradas em `{texto, origem, canal, responder_para, encaminhada, erro, referencia_iso, referencia_extenso}` e injeta o `CONFIG`. Detalhes abaixo. |
+| 2 | **Normalizar entrada** | Code (`src/01_normalizar.js`) | Unifica as três entradas em `{texto, origem, canal, responder_para, encaminhada, erro, referencia_iso, referencia_extenso}` e injeta o `CONFIG`. Aviso de falha de entrega vira `{canal: 'whatsapp_status', falhas_entrega}`. Detalhes abaixo. |
+| S1 | **Resposta não entregue?** | IF | `falhas_entrega` preenchido (status "failed" da Meta) → S2; senão → C1. |
+| S2 | **Montar aviso de não entrega** | Code (`src/07_aviso_nao_entregue.js`) | Número, horário, código e descrição do erro, e o que fazer nos códigos conhecidos (131031 conta bloqueada, 131047 fora da janela de 24h, 131026, 131030). Várias falhas na mesma notificação viram um e-mail só. |
+| S3 | **E-mail: resposta não entregue** | Gmail | "⚠️ Resposta do WhatsApp NÃO entregue", para `email_naty`. |
 | C1 | **É comando?** | IF | `comando` preenchido ("agenda", "menu", "ajuda" ou clique num botão) → C2; vazio → nó 3 (pedido). Comando só vale se a mensagem for **só** a palavra. |
 | C2 | **Pediu a agenda?** | IF | `comando === 'agenda'` → C3; senão → C5. |
 | C3 | **Ler próximos eventos** | HTTP Request (GET events) | Próximos 60 dias, `privateExtendedProperty=naty_bot=1` (só eventos do robô), até 100. Em erro, segue com o erro para C4. |
@@ -262,6 +265,7 @@ Ficam no topo dos nós de código. Edite em `src/`, rode `node build.js` e reimp
 | Google Agenda recusa criar o evento | 3 tentativas; depois "NÃO agendado" | Quem mandou |
 | Dúvida real sobre a data | Evento criado vermelho, `⚠️ VERIFICAR` | Quem mandou ("Agendei, mas CONFIRA a data") |
 | WhatsApp recusa a resposta (token vencido, número fora da lista de teste…) | 2 tentativas; depois o mesmo aviso vai por e-mail, com nota do erro | Naty (e-mail) |
+| A Meta aceita a resposta e depois não entrega (conta bloqueada, mais de 24h desde a última mensagem…) | O envio deu certo; a falha chega depois, como status "failed" no webhook | Naty (e-mail "Resposta do WhatsApp NÃO entregue"). Quem mandou o pedido não recebe nada |
 | E-mail de resposta falha | O evento já está na agenda; o erro fica registrado só no nó | Ninguém (ver em Executions) |
 | Workflow 2 não consegue ler a agenda | "Lembretes PARADOS" | Naty (e-mail, 1x/hora) |
 | Acesso ao Google cai (Gmail e Agenda usam o mesmo app OAuth) | Lembretes param **e** o e-mail "PARADOS" também falha | Ninguém: só aparece como erro em Executions. Mitigação: app OAuth publicado e rotina semanal |

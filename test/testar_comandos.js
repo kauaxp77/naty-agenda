@@ -10,7 +10,7 @@ Settings.now = () => new Date('2026-10-14T11:00:00-03:00').valueOf(); // "hoje" 
 const src = f => fs.readFileSync(path.join(__dirname, '..', 'src', f), 'utf8');
 const rodar = (codigo, entrada, nos = {}) =>
   new Function('$input', '$', 'DateTime', codigo)(
-    { first: () => ({ json: entrada }) },
+    { first: () => ({ json: entrada }), all: () => [{ json: entrada }] },
     nome => ({ first: () => ({ json: nos[nome] }) }),
     DateTime,
   ).map(i => i.json);
@@ -79,7 +79,7 @@ console.log('ok  menu com 2 botões e texto de ajuda');
 // 4. O workflow gerado liga tudo
 const wf = require('../workflow-naty-agenda.json');
 const con = wf.connections;
-assert.equal(con['Normalizar entrada'].main[0][0].node, 'É comando?');
+assert.equal(con['Resposta não entregue?'].main[1][0].node, 'É comando?', 'mensagem normal chega aos comandos');
 assert.equal(con['É comando?'].main[1][0].node, 'Dá para ler?', 'sem comando → fluxo de pedido');
 const q = wf.nodes.find(n => n.name === 'Ler próximos eventos').parameters.queryParameters.parameters;
 assert.ok(q.some(x => x.name === 'privateExtendedProperty' && x.value === 'naty_bot=1'), 'só eventos do robô');
