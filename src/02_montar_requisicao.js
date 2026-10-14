@@ -6,7 +6,7 @@ Leia a mensagem e preencha o esquema. Regras:
 - Nunca invente. Campo sem informação = string vazia.
 - "data" no formato AAAA-MM-DD; horas em HH:MM (24h), horário de Brasília.
 - Datas no formato brasileiro: 05/11 é 5 de novembro. Nunca leia como mês/dia.
-- Datas relativas ("amanhã", "sexta que vem", "daqui a 3 dias") devem ser resolvidas a partir da DATA DE REFERÊNCIA informada, consultando o CALENDÁRIO fornecido. Marque data_relativa=true e explique em "ambiguidades" como resolveu.
+- Datas relativas ("amanhã", "sexta que vem", "daqui a 3 dias") devem ser resolvidas a partir da DATA DE REFERÊNCIA informada, consultando o CALENDÁRIO fornecido. Marque data_relativa=true. Não liste isso em "ambiguidades" (o sistema já avisa); use "ambiguidades" só para dúvida real, como "sexta" sem dizer qual.
 - Data com dia e mês escritos (ex.: "05/11", "5 de novembro") NÃO é relativa, mesmo sem o ano: data_relativa=false. Se o ano não estiver escrito, use a próxima ocorrência a partir da data de referência. Ano omitido é normal: sozinho, não reduz a confiança e não vai em "ambiguidades".
 - "trecho_da_data": copie LITERALMENTE o trecho da mensagem de onde tirou a data e a hora.
 - "dia_da_semana_citado": se a mensagem escrever um dia da semana junto da data principal, copie-o (ex.: "segunda-feira"). Se não escrever, deixe vazio. Não calcule o dia da semana você mesmo.

@@ -102,7 +102,7 @@ Campos do esquema:
 | `dia_da_semana_citado` | string | Comparado em código com o dia real da data |
 | `data_relativa` | boolean | Gera alerta explicando como a data foi calculada (`VERIFICAR` se a mensagem foi encaminhada), **exceto** se `trecho_da_data` tem dia e mês escritos ("05/11", "5 de novembro"): a IA às vezes marca `true` só porque o ano faltou |
 | `outras_datas[]` | `{data, hora, descricao}` | Listadas na resposta e na descrição do evento |
-| `confianca` | `alta` / `media` / `baixa` | Diferente de `alta` → `VERIFICAR` |
+| `confianca` | `alta` / `media` / `baixa` | `baixa` → `VERIFICAR`. `media` → `VERIFICAR`, exceto quando a única razão provável é data relativa digitada na hora ("amanhã", sem dia/mês escritos e sem ser encaminhada) |
 | `ambiguidades[]` | string | Cada uma vira um alerta e deixa o evento em `VERIFICAR` |
 
 ### Checagens feitas em código (`src/03_validar.js`)
@@ -118,7 +118,7 @@ Não há etapa de confirmação. O evento nasce **verde**; qualquer dúvida real
 | Dia da semana citado ≠ dia real da data | Alerta **CONFLITO DE DATA** | Sim |
 | Data no passado | Alerta "JÁ PASSOU" | Sim |
 | Data a mais de 180 dias | Alerta "confira o ano" (pega "05/10" escrito sem ano logo depois de 05/10, que vira o ano seguinte) | Sim |
-| `confianca` ≠ `alta` | Alerta "Confiança da IA: MEDIA/BAIXA" | Sim |
+| `confianca` = `baixa`, ou `media` fora do caso "amanhã" digitado na hora | Alerta "Confiança da IA: MEDIA/BAIXA" | Sim |
 | Cada item de `ambiguidades` | Alerta com o texto da IA | Sim |
 | Data relativa em mensagem **encaminhada** | Alerta "Mensagem ENCAMINHADA com data relativa" | Sim |
 | Data relativa digitada direto (não encaminhada) | Alerta informando a data de referência usada | Não |

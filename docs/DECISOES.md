@@ -45,6 +45,8 @@ O porquê de cada escolha técnica, as alternativas descartadas e o preço pago 
 - O código também filtra alertas falsos da IA: `data_relativa=true` com dia e mês escritos no trecho ("05/11 às 10:00") não gera alerta.
 - Desde D13, os alertas que indicam dúvida real (sem horário, conflito de dia da semana, data passada ou a mais de 6 meses, IA incerta, encaminhada com data relativa) deixam o evento vermelho com `⚠️ VERIFICAR`. Urgência e data relativa digitada direto só informam.
 
+**Correção (14/10/2026):** no primeiro pedido real pelo WhatsApp ("amanhã às 15h"), a IA deu confiança MÉDIA, como faz com toda data relativa, e o evento ficou vermelho. Todo "amanhã" digitado pela Naty ficaria vermelho. Agora confiança MÉDIA com data relativa digitada na hora (não encaminhada, sem dia e mês escritos) não deixa vermelho: a resposta já mostra o dia por extenso. O prompt também passou a pedir que a IA não liste a resolução do "amanhã" em `ambiguidades`.
+
 **Correção (13/10/2026):** num teste real, a IA marcou "05/11 às 10:00" como data relativa e confiança média só porque o ano não estava escrito. A Naty receberia um alerta falso em quase todo pedido, e alerta que aparece sempre deixa de ser lido. O prompt passou a dizer que ano omitido é normal, e o código ignora o `data_relativa` nesse caso. Como ano omitido deixou de ser tratado como ambiguidade, o alerta "confira o ano" caiu de 1 ano para 6 meses: uma data que acabou de passar, escrita sem ano, vira a do ano seguinte (~11 meses à frente) e agora é pega.
 
 **Preço:** nenhum relevante.

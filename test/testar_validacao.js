@@ -192,6 +192,18 @@ r = validar({ ...base, data_relativa: false }, { ...normEmail, encaminhada: true
 assert.equal(r.verificar, false, 'encaminhada com data escrita: sem alerta');
 console.log('ok  encaminhada + "amanhã" → VERIFICAR');
 
+// 13b. Confiança MÉDIA por causa de "amanhã" digitado na hora não deixa vermelho (teste real de 14/10/2026);
+// MÉDIA por outro motivo, BAIXA, ou "amanhã" encaminhado continuam vermelhos.
+const amanha = { ...base, trecho_da_data: 'amanhã às 15h', data_relativa: true, confianca: 'media' };
+r = validar(amanha);
+assert.equal(r.verificar, false, 'amanhã digitado + média → verde');
+assert.ok(!r.alertas.some(a => a.startsWith('Confiança da IA')), r.alertas);
+assert.equal(validar(amanha, { ...normEmail, encaminhada: true }).verificar, true, 'encaminhada → vermelho');
+assert.equal(validar({ ...amanha, confianca: 'baixa' }).verificar, true, 'baixa → vermelho');
+assert.equal(validar({ ...base, confianca: 'media' }).verificar, true, 'média com data escrita → vermelho');
+assert.ok(req.messages[0].content.includes('Não liste isso em "ambiguidades"'), 'regra no prompt');
+console.log('ok  "amanhã" digitado na hora com confiança média fica verde; baixa, encaminhada ou média por outro motivo, vermelho');
+
 // 14. Ano omitido + data que acabou de passar: "05/10" lido em 07/10 vira 05/10/2027.
 r = validar({ ...base, data: '2027-10-05', trecho_da_data: 'dia 05/10 às 9h' });
 assert.ok(r.alertas.some(a => a.includes('mais de 6 meses')), r.alertas);

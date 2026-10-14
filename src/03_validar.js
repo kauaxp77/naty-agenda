@@ -69,10 +69,15 @@ if (inicio < agora) duvida('A data identificada JÁ PASSOU (' + inicio.toFormat(
 if (inicio > agora.plus({ days: 180 })) duvida('A data está a mais de 6 meses de distância. Confira o ano.');
 const horasAte = inicio.diff(agora, 'hours').hours;
 if (horasAte >= 0 && horasAte < 48) alertas.push('URGENTE: faltam só ' + Math.floor(horasAte) + 'h.');
-if (d.confianca !== 'alta') duvida('Confiança da IA: ' + d.confianca.toUpperCase() + '.');
 // A IA às vezes marca "relativa" só porque o ano não foi escrito ("05/11 às 10:00"). Com dia e mês
 // escritos no trecho, a data não é relativa, e o alerta seria ruído que ensina a Naty a ignorar alertas.
 const temDiaEMes = /\d{1,2}\s*\/\s*\d{1,2}|\d{1,2}º?\s+de\s+(jan|fev|mar|abr|mai|jun|jul|ago|set|out|nov|dez)/.test(semAcento(d.trecho_da_data));
+// A IA dá confiança MÉDIA a toda data relativa ("amanhã às 15h"). Digitada na hora, isso não é dúvida:
+// a resposta já mostra o dia por extenso. Visto no teste de 14/10/2026: todo "amanhã" ficava vermelho.
+const relativaDigitada = d.data_relativa && !temDiaEMes && !p.encaminhada;
+if (d.confianca === 'baixa' || (d.confianca === 'media' && !relativaDigitada)) {
+  duvida('Confiança da IA: ' + d.confianca.toUpperCase() + '.');
+}
 if (d.data_relativa && !temDiaEMes) {
   if (p.encaminhada) {
     // O WhatsApp não diz quando o cliente escreveu: "amanhã" de 3 dias atrás vira o amanhã de hoje
