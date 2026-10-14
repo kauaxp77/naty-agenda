@@ -139,7 +139,9 @@ Custo mensal atual: **R$ 0**. Quando o plano grátis apertar, os upgrades estão
 
 ## Colocar no ar
 
-Na ordem:
+Instalação do zero, numa conta nova (por exemplo, para outro cliente): [`INSTALACAO.md`](INSTALACAO.md).
+
+Nesta instalação, na ordem:
 
 1. **Hospedagem do n8n:** [`deploy/RENDER.md`](deploy/RENDER.md). Já está criada; o guia serve para conferir ou recriar.
 2. **Credenciais, importação e testes:** [`SETUP.md`](SETUP.md): Gmail, Google Agenda, Groq, app da Meta e número do WhatsApp, e o roteiro de testes.
