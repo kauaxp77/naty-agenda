@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Agenda Naty: guia de uso</title>
+<style>
+  :root {
+    --ink: #17202a;
+    --muted: #5a6573;
+    --line: #dde2e7;
+    --surface: #f4f6f8;
+    --accent: #11724c;
+    --accent-soft: #e5f3ec;
+    --warn: #b42318;
+    --warn-soft: #fdecea;
+    --wa: #e7fbe0;
+  }
+  @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, "DejaVu Sans", sans-serif; color: var(--ink); background: #fff; font-size: 10pt; line-height: 1.45; }
+  h1 { font-size: 24pt; line-height: 1.15; margin: 0 0 6px; letter-spacing: -0.01em; }
+  h2 { font-size: 13.5pt; margin: 16px 0 6px; }
+  h3 { font-size: 11pt; margin: 14px 0 4px; }
+  p { margin: 0 0 8px; }
+  .sub { color: var(--muted); font-size: 12pt; margin-bottom: 14px; }
+  .lead { font-size: 11pt; background: var(--surface); border-left: 4px solid var(--accent); padding: 12px 14px; border-radius: 4px; margin: 10px 0 4px; }
+  .page { break-after: page; }
+  .page:last-child { break-after: auto; }
+  .muted { color: var(--muted); }
+  .small { font-size: 9pt; }
+
+  /* Diagrama: quatro blocos */
+  .flow { display: flex; align-items: stretch; gap: 0; margin: 12px 0 4px; }
+  .box { flex: 1; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 10px 8px; background: #fff; }
+  .box .tag { font-size: 8pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+  .box .t { font-weight: 700; font-size: 10.5pt; margin: 2px 0 4px; }
+  .box .d { font-size: 8.8pt; color: var(--muted); line-height: 1.4; }
+  .arrow { width: 22px; display: flex; align-items: center; justify-content: center; color: var(--accent); font-size: 15pt; font-weight: 700; }
+
+  /* Passo a passo */
+  ol.steps { list-style: none; padding: 0; margin: 10px 0 0; counter-reset: s; }
+  ol.steps li { position: relative; padding: 0 0 6px 38px; counter-increment: s; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+  ol.steps li::after { content: ""; position: absolute; left: 11.5px; top: 26px; bottom: 2px; width: 1.5px; background: var(--line); }
+  ol.steps li:last-child::after { display: none; }
+  ol.steps b { display: block; }
+
+  .note { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 14px; margin-top: 8px; }
+  .note h3 { margin-top: 0; }
+  ul { margin: 4px 0 0; padding-left: 18px; }
+  li { margin-bottom: 3px; }
+
+  /* Exemplo: mensagens */
+  .chat { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+  .col-title { font-size: 8.5pt; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .bubble { border-radius: 10px; padding: 10px 12px; font-size: 9.2pt; line-height: 1.45; white-space: pre-line; }
+  .in { background: var(--surface); border: 1px solid var(--line); }
+  .out { background: var(--wa); border: 1px solid #c9eebb; }
+  .out.alert { background: var(--warn-soft); border-color: #f5c2bd; }
+  .ok { color: var(--accent); font-weight: 700; }
+  .bad { color: var(--warn); font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 9.6pt; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; }
+  .pill { display: inline-block; font-size: 8pt; font-weight: 700; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+  .p-ok { background: var(--accent-soft); color: var(--accent); }
+  .p-wip { background: #fff4d6; color: #8a5a00; }
+  .p-dep { background: #e8eefc; color: #1f4fbf; }
+  .p-next { background: var(--surface); color: var(--muted); }
+  .colors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .ev { border-radius: 6px; padding: 8px 10px; font-size: 9.2pt; color: #fff; }
+  .ev.g { background: #0b8043; }
+  .ev.r { background: #d50000; }
+  footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 8pt; color: var(--muted); }
+
+  .fill { background: #fff4d6; color: #8a5a00; font-weight: 700; padding: 0 6px; border-radius: 4px; }
+  .card { border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 14px; margin-top: 10px; }
+  .card h3 { margin-top: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  code { font-family: inherit; font-weight: 700; background: var(--surface); padding: 0 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <h1>Agenda Naty</h1>
+  <div class="sub">Guia de uso: como mandar pedidos ao robô e o que ele responde</div>
+
+  <div class="lead">Encaminhe o pedido do cliente para o WhatsApp do robô. Em segundos ele coloca o serviço na sua agenda e responde dizendo o dia por extenso, para você conferir.</div>
+
+  <div class="card">
+    <b>Número do robô:</b> <span class="fill">(número do robô)</span>. Salve como contato <b>Agenda</b>.<br>
+    <span class="muted small">Ele só atende os números cadastrados. Mensagem de outro número é ignorada.</span>
+  </div>
+
+  <h2>Como mandar um pedido</h2>
+  <ol class="steps">
+    <li><b>Encaminhe a mensagem do cliente</b>Segure a mensagem → <b style="display:inline">Encaminhar</b> → Agenda.</li>
+    <li><b>Ou escreva o pedido</b>Com o serviço, o órgão, a data e a hora. Exemplo: <i>Sessão do Pregão 45/2026 da Prefeitura de Campinas, dia 20/11 às 9h</i>.</li>
+    <li><b>Leia a resposta</b>Confira o dia por extenso. É ali que se pega um erro de data.</li>
+  </ol>
+  <p class="small muted">O robô só lê <b>texto</b>: áudio, foto e PDF ele não entende. Mande um pedido por mensagem.</p>
+
+  <h2>As três respostas possíveis</h2>
+  <div class="chat">
+    <div>
+      <div class="col-title">Tudo certo</div>
+      <div class="bubble out"><span class="ok">✅ Agendado</span>
+Sessão Pregão 45/2026 – Prefeitura de Campinas
+
+📅 <b>SEXTA-FEIRA, 20 DE NOVEMBRO DE 2026 às 09:00</b>
+A mensagem diz: "dia 20/11 às 9h"</div>
+      <p class="small" style="margin-top:6px">Na agenda, o evento fica <b>verde</b>. Nada a fazer.</p>
+    </div>
+    <div>
+      <div class="col-title">Agendou, mas tem dúvida</div>
+      <div class="bubble out alert"><span class="bad">⚠️ Agendei, mas CONFIRA a data</span>
+Visita técnica – Sabesp Santos
+
+📅 <b>QUINTA-FEIRA, 19 DE NOVEMBRO DE 2026 às 14:00</b>
+⚠️ ATENÇÃO: a mensagem diz segunda-feira, mas 19/11 cai numa quinta.</div>
+      <p class="small" style="margin-top:6px">Na agenda, o evento fica <b>vermelho</b>. Confira com o cliente (veja a página 2).</p>
+    </div>
+  </div>
+  <div class="note" style="margin-top:12px">
+    <h3><span class="bad">🚨 NÃO agendei este pedido</span></h3>
+    O robô explica o motivo: era um áudio, não tinha data, a IA ou o Google falharam. <b>Coloque na agenda à mão.</b>
+  </div>
+</section>
+
+<section class="page">
+  <h2 style="margin-top:0">Na agenda</h2>
+  <div class="colors">
+    <div class="ev g">Sessão Pregão 45/2026 – Prefeitura de Campinas</div>
+    <div class="ev r">⚠️ VERIFICAR: Visita técnica – Sabesp Santos</div>
+  </div>
+  <p style="margin-top:8px"><b>Evento vermelho:</b> confirme a data com o cliente, abra o evento, corrija o dia ou a hora se precisar e apague o <code>⚠️ VERIFICAR:</code> do título. Os lembretes se ajustam sozinhos.</p>
+  <p><b>Mudou a data?</b> Corrija direto no evento. Os lembretes passam a valer para a data nova.</p>
+
+  <h2>Os avisos que você recebe</h2>
+  <table>
+    <tr><th>Onde</th><th>Quando</th></tr>
+    <tr><td>Alarme no celular (app Google Agenda)</td><td>2 dias, 1 dia, 12 horas e 6 horas antes</td></tr>
+    <tr><td>E-mail para você e a equipe</td><td>2 dias e 1 dia antes</td></tr>
+    <tr><td>Convite do Google para a equipe</td><td>Na hora em que o serviço é agendado</td></tr>
+  </table>
+  <p class="small muted" style="margin-top:6px">Os e-mails do robô saem da sua própria conta do Gmail: aparecem como enviados por você.</p>
+
+  <h2>Comandos no WhatsApp do robô</h2>
+  <div class="grid2">
+    <div class="card"><b><code>agenda</code></b><br>Lista os serviços marcados nos próximos 60 dias, por dia. ⚠️ marca os que estão para conferir.</div>
+    <div class="card"><b><code>oi</code> ou <code>menu</code></b><br>Mostra os botões <b>📅 Ver agenda</b> e <b>➕ Como agendar</b>.</div>
+  </div>
+  <p class="small muted" style="margin-top:6px">O comando é só a palavra. "agenda pra mim dia 20/11" é tratado como pedido.</p>
+
+  <h2>Quando algo dá errado</h2>
+  <table>
+    <tr><th>Você recebe</th><th>O que fazer</th></tr>
+    <tr><td>🚨 "Pedido NÃO agendado" (WhatsApp ou e-mail)</td><td>Agendar à mão. O texto do pedido vem junto.</td></tr>
+    <tr><td>⚠️ "Resposta do WhatsApp NÃO entregue" (e-mail)</td><td>O pedido pode ter entrado na agenda; confira. Quem mandou não recebeu a confirmação.</td></tr>
+    <tr><td>🚨 "Os lembretes da agenda estão PARADOS" (e-mail)</td><td>Os alarmes do celular continuam. Avise o suporte.</td></tr>
+    <tr><td>O robô não responde nada</td><td>Use o formulário de reserva abaixo e avise o suporte.</td></tr>
+  </table>
+
+  <div class="card">
+    <h3>Formulário de reserva</h3>
+    Se o WhatsApp do robô parar, cole o pedido em:<br>
+    <b>naty-n8n.onrender.com/form/b1a7e0c2-5d1f-4c8e-9a3b-7f2d6e4c1a90</b><br>
+    <span class="muted small">Usuário e senha: entregues à parte. A resposta chega por e-mail. Na primeira vez do dia, o endereço pode demorar até um minuto para abrir.</span>
+  </div>
+
+  <div class="card">
+    <h3>Suporte</h3>
+    <span class="fill">(nome e contato do suporte)</span>
+  </div>
+</section>
+
+</body>
+</html>

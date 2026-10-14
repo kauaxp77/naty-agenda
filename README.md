@@ -144,6 +144,7 @@ Na ordem:
 1. **Hospedagem do n8n:** [`deploy/RENDER.md`](deploy/RENDER.md). Já está criada; o guia serve para conferir ou recriar.
 2. **Credenciais, importação e testes:** [`SETUP.md`](SETUP.md): Gmail, Google Agenda, Groq, app da Meta e número do WhatsApp, e o roteiro de testes.
 3. **Rotina de operação:** [`docs/OPERACAO.md`](docs/OPERACAO.md).
+4. **Entrega para a Naty** (WhatsApp e Google nas contas dela): [`ENTREGA.md`](ENTREGA.md). Guia de uso dela: [`docs/apresentacao/guia-da-naty.pdf`](docs/apresentacao/guia-da-naty.pdf).
 
 ## Desenvolvimento
 
