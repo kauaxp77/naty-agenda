@@ -41,6 +41,7 @@ const msgTexto = {
 let w = rodar(src01, waMsg(msgTexto));
 assert.equal(w.canal, 'whatsapp');
 assert.equal(w.responder_para, '5511987654321');
+assert.equal(w.whatsapp_phone_number_id, '123', 'responde pelo número que recebeu');
 assert.equal(w.origem, 'WhatsApp (Naty)');
 assert.equal(w.texto, 'Sessão dia 15/10 às 9h');
 assert.equal(w.erro, '');

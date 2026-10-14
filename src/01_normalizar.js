@@ -4,7 +4,6 @@ const CONFIG = {
   // Quem pode mandar pedidos ao robô pelo WhatsApp: DDI + DDD + número, só dígitos (ex.: '5511987654321').
   // Mensagem de qualquer outro número é ignorada sem resposta.
   whatsapp_autorizados: ['COLOQUE_O_NUMERO_DA_NATY'],
-  whatsapp_phone_number_id: 'COLOQUE_O_ID_DO_NUMERO', // Meta → app → WhatsApp → Configuração da API
   // Recebem o convite do evento e os lembretes por e-mail, além da Naty. Ex.: ['joao@empresa.com']
   emails_equipe: [],
   calendario_id: 'primary',       // ou o ID de um calendário dedicado
@@ -28,7 +27,7 @@ const autorizado = numero => {
 };
 
 const j = $input.first().json;
-let texto = '', origem, referencia, canal, responder_para = '', encaminhada = false, erro = '';
+let texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_number_id = '', encaminhada = false, erro = '';
 
 if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
   // Veio do WhatsApp (nó "WhatsApp Trigger": um item por mensagem recebida)
@@ -38,6 +37,8 @@ if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
   const nome = ((j.contacts || [])[0] || {}).profile?.name;
   canal = 'whatsapp';
   responder_para = m.from;
+  // A resposta sai pelo mesmo número que recebeu a mensagem (o de teste da Meta ou o próprio)
+  whatsapp_phone_number_id = (j.metadata && j.metadata.phone_number_id) || '';
   origem = 'WhatsApp' + (nome ? ' (' + nome + ')' : '');
   encaminhada = !!(m.context && (m.context.forwarded || m.context.frequently_forwarded));
   // Mensagem encaminhada não traz a data em que o cliente escreveu: a referência é o encaminhamento
@@ -75,6 +76,7 @@ return [{
     origem,
     canal,             // whatsapp | email | formulario: define por onde vai a resposta
     responder_para,    // número do WhatsApp de quem mandou o pedido
+    whatsapp_phone_number_id, // ID (na Meta) do número do robô que recebeu a mensagem
     encaminhada,
     erro,              // preenchido quando a mensagem não dá para ler (áudio, imagem...)
     referencia_iso: referencia.toISO(),

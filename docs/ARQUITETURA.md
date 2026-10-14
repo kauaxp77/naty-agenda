@@ -51,7 +51,7 @@ Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`). 17 nós.
 | 7 | **Extraiu certo?** | IF | `erro` vazio → cria o evento; senão → "Montar aviso de falha". |
 | 8 | **Criar evento na agenda** | HTTP Request (Google Calendar API) | `POST /calendars/{id}/events?sendUpdates=all`: o Google manda o convite por e-mail aos convidados. 3 tentativas. Se falhar → "Montar aviso de falha". |
 | 9 | **Responder pelo WhatsApp?** | IF | `canal === 'whatsapp'` → nó 10; senão (e-mail ou formulário) → nó 11. |
-| 10 | **WhatsApp: agendado** | HTTP Request (Graph API da Meta) | `POST https://graph.facebook.com/v23.0/{whatsapp_phone_number_id}/messages`, credencial "WhatsApp API". Manda a resposta + link do evento para `responder_para`, na mesma conversa. 2 tentativas. Se falhar → nó 11. |
+| 10 | **WhatsApp: agendado** | HTTP Request (Graph API da Meta) | `POST https://graph.facebook.com/v23.0/{whatsapp_phone_number_id}/messages` (o ID vem da própria mensagem recebida: responde pelo número que recebeu), credencial "WhatsApp API". Manda a resposta + link do evento para `responder_para`, na mesma conversa. 2 tentativas. Se falhar → nó 11. |
 | 11 | **E-mail: agendado** | Gmail | Para `email_naty`. Assunto `✅ Agendado: …` ou `⚠️ CONFIRA: …`, resposta em HTML + link do evento. Quando substitui o WhatsApp que falhou, traz uma nota com o erro. Se este e-mail falhar, a execução fica com erro em *Executions* (o evento já existe). |
 | F1 | **Montar aviso de falha** | Code (`src/04_aviso_falha.js`) | Recebe as três saídas de falha (nós 3, 7 e 8) e monta o aviso "NÃO agendado": motivo, origem e texto original do pedido, em versão WhatsApp e e-mail. |
 | F2 | **Avisar pelo WhatsApp?** | IF | Mesma regra do nó 9. |
@@ -228,7 +228,6 @@ Ficam no topo dos nós de código. Edite em `src/`, rode `node build.js` e reimp
 |---|---|---|
 | `email_naty` | (preencher) | Recebe as respostas de pedidos que chegam por e-mail ou formulário, e os avisos quando o WhatsApp falha |
 | `whatsapp_autorizados` | (preencher) | Números que podem mandar pedidos: DDI + DDD + número, só dígitos (ex.: `5511987654321`). Com ou sem o 9, as duas formas funcionam. Outros números são ignorados sem resposta |
-| `whatsapp_phone_number_id` | (preencher) | ID do número do robô (Meta → app → WhatsApp → Configuração da API). Usado no endereço de envio da resposta |
 | `emails_equipe` | `[]` | Viram convidados do evento: recebem o convite do Google e os lembretes por e-mail |
 | `calendario_id` | `primary` | Calendário onde os eventos são criados |
 | `duracao_padrao_horas` | `2` | Duração quando o pedido não diz a hora de término |

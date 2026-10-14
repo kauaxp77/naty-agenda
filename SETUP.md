@@ -30,7 +30,7 @@ O robô usa a **API oficial do WhatsApp** (WhatsApp Cloud API, da Meta). Para co
 2. **Meus apps → Criar app.** Caso de uso: **"Conectar-se com clientes pelo WhatsApp"**. Nome: `Agenda Naty`. Se pedir um **portfólio empresarial**, crie um com o nome da empresa.
 3. No app, abra **WhatsApp → Configuração da API** (*API Setup*):
    - em **"Para"** (*To*), adicione o seu número e o da Naty e confirme cada um com o código que chega no WhatsApp;
-   - anote o **ID do número de telefone** (*Phone number ID*) e o **ID da conta do WhatsApp Business** (*WhatsApp Business Account ID*);
+   - anote o **ID da conta do WhatsApp Business** (*WhatsApp Business Account ID*). O ID do número não precisa: o robô responde pelo número que recebeu a mensagem;
    - o **token de acesso temporário** desta tela vale só 24 horas. Serve para o primeiro teste; o permanente é o passo 2.
 4. **Configurações do app → Básico:** anote o **ID do aplicativo** e a **Chave secreta do aplicativo** (clique em *Mostrar*). A chave secreta é senha: vai só para a credencial do n8n (passo 6).
 
@@ -99,7 +99,6 @@ São duas, porque a Meta separa "receber" de "enviar":
    |---|---|
    | `email_naty` | recebe as respostas dos pedidos que chegam por e-mail ou formulário, e os avisos quando o WhatsApp falha |
    | `whatsapp_autorizados` | quem pode mandar pedidos ao robô: DDI + DDD + número, só dígitos. Ex.: `['5511987654321', '5511912345678']`. Mensagem de outro número é ignorada, sem resposta. |
-   | `whatsapp_phone_number_id` | **ID do número de telefone** (passo 1.3) |
    | `emails_equipe` | quem recebe o convite do evento e os lembretes por e-mail, além da Naty. Ex.: `['joao@empresa.com']`. Vazio = só a Naty. |
    | `calendario_id` | `primary` ou o ID do calendário de serviços |
    | `duracao_padrao_horas` | duração quando o pedido não diz a hora de término (padrão 2) |
@@ -177,7 +176,7 @@ O número de teste só conversa com os números cadastrados em "Para" e não é 
 
 1. Um número **exclusivo**, que **não esteja** em uso no aplicativo do WhatsApp (nem no WhatsApp Business). Um chip novo resolve. Se o número já estiver no WhatsApp, é preciso apagar a conta dele no aplicativo antes.
 2. No app da Meta: **WhatsApp → Configuração da API → Adicionar número de telefone**. Informe o nome de exibição (a Meta aprova) e confirme por SMS ou ligação.
-3. No n8n, troque `whatsapp_phone_number_id` (nó "Normalizar entrada") pelo ID do número novo.
+3. No n8n, nada muda: o robô responde pelo mesmo número que recebeu a mensagem.
 4. Mande uma mensagem de teste. **Se ela não chegar no n8n** (nenhuma execução nova), a conta do WhatsApp Business pode não estar ligada ao app. Abra https://developers.facebook.com/tools/explorer, selecione o app e um token com as permissões do passo 2, mude para **POST** e envie para `<ID da conta do WhatsApp Business>/subscribed_apps`. A tela não mostra nada de especial, mas a ligação é feita.
 
 > Responder pedidos dentro de 24 horas da mensagem recebida é **grátis**. A Meta pode pedir uma forma de pagamento na conta; ela só seria usada para mensagens que a empresa inicia (ex.: lembretes pelo WhatsApp), que este sistema ainda não manda.
