@@ -29,7 +29,7 @@ O robô usa a **API oficial do WhatsApp** (WhatsApp Cloud API, da Meta). Para co
 1. Entre em https://developers.facebook.com com uma conta do Facebook. Se for o primeiro acesso, aceite se cadastrar como desenvolvedor.
 2. **Meus apps → Criar app.** Caso de uso: **"Conectar-se com clientes pelo WhatsApp"**. Nome: `Agenda Naty`. Se pedir um **portfólio empresarial**, crie um com o nome da empresa.
 3. No app, abra **WhatsApp → Configuração da API** (*API Setup*):
-   - em **"Para"** (*To*), adicione o seu número e o da Naty e confirme cada um com o código que chega no WhatsApp;
+   - em **"Para"** (*To*), adicione o seu número e o da Naty e confirme cada um com o código que chega no WhatsApp. **Celular de DDD fora de 11–19, 21, 22, 24, 27 e 28** (ex.: 61, Brasília): adicione **também sem o 9** depois do DDD (`+55 61 8123-4567`). Nesses DDDs o WhatsApp identifica o celular pelo número antigo, de 8 dígitos; o robô responde para esse número, e a Meta recusa a resposta (erro 131030) se só a forma com o 9 estiver na lista. Isso só vale para o número de teste; com número próprio não existe lista;
    - anote o **ID da conta do WhatsApp Business** (*WhatsApp Business Account ID*). O ID do número não precisa: o robô responde pelo número que recebeu a mensagem;
    - o **token de acesso temporário** desta tela vale só 24 horas. Serve para o primeiro teste; o permanente é o passo 2.
 4. **Configurações do app → Básico:** anote o **ID do aplicativo** e a **Chave secreta do aplicativo** (clique em *Mostrar*). A chave secreta é senha: vai só para a credencial do n8n (passo 6).
@@ -138,6 +138,8 @@ Ligue a chave **Active** (ou **Publish**) no topo de **cada um** dos dois workfl
 - o workflow 1 registra o seu endereço no app da Meta e passa a receber o WhatsApp; verifica o Gmail a cada minuto; o formulário passa a usar a *Production URL*;
 - o workflow 2 roda a cada 10 minutos.
 
+> **Depois de ativar, ligue a conta do WhatsApp ao app** (uma vez só). Sem isso, o botão *Testar* do painel da Meta chega ao n8n, mas as mensagens reais não chegam: https://developers.facebook.com/tools/explorer → app **Agenda Naty** → permissões `whatsapp_business_management` e `whatsapp_business_messaging` → **Generate Access Token** → troque GET por **POST** → endereço `<ID da conta do WhatsApp Business>/subscribed_apps` → **Enviar**. A resposta deve ser `{"success": true}`. (Achado no primeiro teste, em 14/10/2026: o n8n registra o webhook no app, mas não liga a conta.)
+
 > O gatilho do WhatsApp **só funciona com o workflow ativo**. Evite o botão de teste ("Listen for test event") nesse nó: ele registra um endereço provisório no app da Meta, e cada app aceita **um** endereço só. Se aparecer *"already has a webhook subscription"*, veja `docs/OPERACAO.md`.
 
 ## 10. Celular da Naty
@@ -177,7 +179,7 @@ O número de teste só conversa com os números cadastrados em "Para" e não é 
 1. Um número **exclusivo**, que **não esteja** em uso no aplicativo do WhatsApp (nem no WhatsApp Business). Um chip novo resolve. Se o número já estiver no WhatsApp, é preciso apagar a conta dele no aplicativo antes.
 2. No app da Meta: **WhatsApp → Configuração da API → Adicionar número de telefone**. Informe o nome de exibição (a Meta aprova) e confirme por SMS ou ligação.
 3. No n8n, nada muda: o robô responde pelo mesmo número que recebeu a mensagem.
-4. Mande uma mensagem de teste. **Se ela não chegar no n8n** (nenhuma execução nova), a conta do WhatsApp Business pode não estar ligada ao app. Abra https://developers.facebook.com/tools/explorer, selecione o app e um token com as permissões do passo 2, mude para **POST** e envie para `<ID da conta do WhatsApp Business>/subscribed_apps`. A tela não mostra nada de especial, mas a ligação é feita.
+4. Mande uma mensagem de teste. **Se ela não chegar no n8n** (nenhuma execução nova), ligue a conta do WhatsApp Business ao app como no passo 9 (`<ID da conta>/subscribed_apps`).
 
 > Responder pedidos dentro de 24 horas da mensagem recebida é **grátis**. A Meta pode pedir uma forma de pagamento na conta; ela só seria usada para mensagens que a empresa inicia (ex.: lembretes pelo WhatsApp), que este sistema ainda não manda.
 
