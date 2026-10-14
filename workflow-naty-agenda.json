@@ -96,12 +96,12 @@
         0
       ],
       "parameters": {
-        "jsCode": "// ===== CONFIGURAÇÃO: edite aqui =====\nconst CONFIG = {\n  email_naty: 'COLOQUE_O_EMAIL_DA_NATY@gmail.com',\n  // Quem pode mandar pedidos ao robô pelo WhatsApp: DDI + DDD + número, só dígitos (ex.: '5511987654321').\n  // Mensagem de qualquer outro número é ignorada sem resposta.\n  whatsapp_autorizados: ['COLOQUE_O_NUMERO_DA_NATY'],\n  // Recebem o convite do evento e os lembretes por e-mail, além da Naty. Ex.: ['joao@empresa.com']\n  emails_equipe: [],\n  calendario_id: 'primary',       // ou o ID de um calendário dedicado\n  duracao_padrao_horas: 2,        // usada quando o pedido não diz a hora de término\n  fuso: 'America/Sao_Paulo',\n};\n// ====================================\n\n// Celular brasileiro antigo pode chegar do WhatsApp sem o 9 (\"551187654321\" em vez de \"5511987654321\").\n// Compara as duas formas para a lista de autorizados funcionar nos dois casos.\nconst formas = n => {\n  const d = String(n || '').replace(/\\D/g, '');\n  const f = new Set([d]);\n  if (/^55\\d{2}9\\d{8}$/.test(d)) f.add(d.slice(0, 4) + d.slice(5));\n  if (/^55\\d{2}\\d{8}$/.test(d)) f.add(d.slice(0, 4) + '9' + d.slice(4));\n  return f;\n};\nconst autorizado = numero => {\n  const de = formas(numero);\n  return CONFIG.whatsapp_autorizados.some(a => [...formas(a)].some(x => de.has(x)));\n};\n\nconst j = $input.first().json;\nlet texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_number_id = '', encaminhada = false, erro = '';\n\nif (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {\n  // Veio do WhatsApp (nó \"WhatsApp Trigger\": um item por mensagem recebida)\n  const m = (j.messages || [])[0];\n  if (!m) return [];                     // aviso de entrega/leitura, não é mensagem\n  if (!autorizado(m.from)) return [];    // número fora da lista: ignora\n  const nome = ((j.contacts || [])[0] || {}).profile?.name;\n  canal = 'whatsapp';\n  responder_para = m.from;\n  // A resposta sai pelo mesmo número que recebeu a mensagem (o de teste da Meta ou o próprio)\n  whatsapp_phone_number_id = (j.metadata && j.metadata.phone_number_id) || '';\n  origem = 'WhatsApp' + (nome ? ' (' + nome + ')' : '');\n  encaminhada = !!(m.context && (m.context.forwarded || m.context.frequently_forwarded));\n  // Mensagem encaminhada não traz a data em que o cliente escreveu: a referência é o encaminhamento\n  const enviado = DateTime.fromSeconds(Number(m.timestamp) || 0);\n  referencia = (Number(m.timestamp) && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);\n  if (m.type === 'text') {\n    texto = (m.text && m.text.body) || '';\n  } else {\n    const tipos = { audio: 'um áudio', image: 'uma imagem', document: 'um arquivo', video: 'um vídeo', sticker: 'uma figurinha' };\n    erro = 'Recebi ' + (tipos[m.type] || 'uma mensagem que não é texto') +\n      ', mas por enquanto só leio mensagens de texto. Mande o pedido escrito (ou encaminhe a mensagem de texto do cliente).';\n  }\n  if (!erro && !texto.trim()) erro = 'A mensagem chegou vazia.';\n} else if (j['Texto do pedido']) {\n  // Veio do formulário (texto colado à mão)\n  texto = j['Texto do pedido'];\n  canal = 'formulario';\n  origem = 'Formulário (' + (j['Origem'] || 'colado') + ')';\n  referencia = DateTime.now().setZone(CONFIG.fuso);\n} else {\n  // Veio do Gmail\n  const corpo = j.text || j.textPlain || j.snippet || '';\n  texto = 'Assunto: ' + (j.subject || '') + '\\nDe: ' + ((j.from && j.from.text) || '') + '\\n\\n' + corpo;\n  canal = 'email';\n  origem = 'E-mail';\n  // Datas relativas (\"amanhã\", \"próxima terça\") contam a partir do ENVIO do e-mail, não de agora\n  const enviado = j.date ? DateTime.fromJSDate(new Date(j.date)) : null;\n  referencia = (enviado && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);\n}\n\nreturn [{\n  json: {\n    ...CONFIG,\n    texto,\n    origem,\n    canal,             // whatsapp | email | formulario: define por onde vai a resposta\n    responder_para,    // número do WhatsApp de quem mandou o pedido\n    whatsapp_phone_number_id, // ID (na Meta) do número do robô que recebeu a mensagem\n    encaminhada,\n    erro,              // preenchido quando a mensagem não dá para ler (áudio, imagem...)\n    referencia_iso: referencia.toISO(),\n    referencia_extenso: referencia.setLocale('pt-BR').toFormat(\"cccc, dd 'de' LLLL 'de' yyyy, HH:mm\"),\n  },\n}];\n"
+        "jsCode": "// ===== CONFIGURAÇÃO: edite aqui =====\nconst CONFIG = {\n  email_naty: 'COLOQUE_O_EMAIL_DA_NATY@gmail.com',\n  // Quem pode mandar pedidos ao robô pelo WhatsApp: DDI + DDD + número, só dígitos (ex.: '5511987654321').\n  // Mensagem de qualquer outro número é ignorada sem resposta.\n  whatsapp_autorizados: ['COLOQUE_O_NUMERO_DA_NATY'],\n  // Recebem o convite do evento e os lembretes por e-mail, além da Naty. Ex.: ['joao@empresa.com']\n  emails_equipe: [],\n  calendario_id: 'primary',       // ou o ID de um calendário dedicado\n  duracao_padrao_horas: 2,        // usada quando o pedido não diz a hora de término\n  fuso: 'America/Sao_Paulo',\n};\n// ====================================\n\n// Celular brasileiro antigo pode chegar do WhatsApp sem o 9 (\"551187654321\" em vez de \"5511987654321\").\n// Compara as duas formas para a lista de autorizados funcionar nos dois casos.\nconst formas = n => {\n  const d = String(n || '').replace(/\\D/g, '');\n  const f = new Set([d]);\n  if (/^55\\d{2}9\\d{8}$/.test(d)) f.add(d.slice(0, 4) + d.slice(5));\n  if (/^55\\d{2}\\d{8}$/.test(d)) f.add(d.slice(0, 4) + '9' + d.slice(4));\n  return f;\n};\nconst autorizado = numero => {\n  const de = formas(numero);\n  return CONFIG.whatsapp_autorizados.some(a => [...formas(a)].some(x => de.has(x)));\n};\n\n// Comandos do WhatsApp: valem só se a mensagem for SÓ a palavra (\"agenda\"), para que\n// \"agenda pra mim a sessão dia 20/11\" continue sendo um pedido. Botões do menu chegam pelo id.\nconst COMANDOS = {\n  agenda: ['agenda', 'ver agenda', 'minha agenda', 'eventos', 'proximos', 'proximos eventos', 'compromissos', 'lista'],\n  menu: ['menu', 'oi', 'ola', 'opcoes', 'inicio', 'bom dia', 'boa tarde', 'boa noite'],\n  ajuda: ['ajuda', 'como agendar', 'help'],\n};\nconst BOTOES = { ver_agenda: 'agenda', como_agendar: 'ajuda' };\nconst qualComando = t => {\n  const n = String(t || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase()\n    .replace(/[^a-z0-9 ]/g, ' ').replace(/\\s+/g, ' ').trim();\n  return Object.keys(COMANDOS).find(c => COMANDOS[c].includes(n)) || '';\n};\n\nconst j = $input.first().json;\nlet texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_number_id = '', encaminhada = false, erro = '', comando = '';\n\nif (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {\n  // Veio do WhatsApp (nó \"WhatsApp Trigger\": um item por mensagem recebida)\n  const m = (j.messages || [])[0];\n  if (!m) return [];                     // aviso de entrega/leitura, não é mensagem\n  if (!autorizado(m.from)) return [];    // número fora da lista: ignora\n  const nome = ((j.contacts || [])[0] || {}).profile?.name;\n  canal = 'whatsapp';\n  responder_para = m.from;\n  // A resposta sai pelo mesmo número que recebeu a mensagem (o de teste da Meta ou o próprio)\n  whatsapp_phone_number_id = (j.metadata && j.metadata.phone_number_id) || '';\n  origem = 'WhatsApp' + (nome ? ' (' + nome + ')' : '');\n  encaminhada = !!(m.context && (m.context.forwarded || m.context.frequently_forwarded));\n  // Mensagem encaminhada não traz a data em que o cliente escreveu: a referência é o encaminhamento\n  const enviado = DateTime.fromSeconds(Number(m.timestamp) || 0);\n  referencia = (Number(m.timestamp) && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);\n  if (m.type === 'text') {\n    texto = (m.text && m.text.body) || '';\n    comando = qualComando(texto);\n  } else if (m.type === 'interactive') {\n    // Clique num botão do menu\n    const r = (m.interactive && (m.interactive.button_reply || m.interactive.list_reply)) || {};\n    comando = BOTOES[r.id] || 'menu';\n    texto = r.title || '';\n  } else {\n    const tipos = { audio: 'um áudio', image: 'uma imagem', document: 'um arquivo', video: 'um vídeo', sticker: 'uma figurinha' };\n    erro = 'Recebi ' + (tipos[m.type] || 'uma mensagem que não é texto') +\n      ', mas por enquanto só leio mensagens de texto. Mande o pedido escrito (ou encaminhe a mensagem de texto do cliente).';\n  }\n  if (!erro && !texto.trim()) erro = 'A mensagem chegou vazia.';\n} else if (j['Texto do pedido']) {\n  // Veio do formulário (texto colado à mão)\n  texto = j['Texto do pedido'];\n  canal = 'formulario';\n  origem = 'Formulário (' + (j['Origem'] || 'colado') + ')';\n  referencia = DateTime.now().setZone(CONFIG.fuso);\n} else {\n  // Veio do Gmail\n  const corpo = j.text || j.textPlain || j.snippet || '';\n  texto = 'Assunto: ' + (j.subject || '') + '\\nDe: ' + ((j.from && j.from.text) || '') + '\\n\\n' + corpo;\n  canal = 'email';\n  origem = 'E-mail';\n  // Datas relativas (\"amanhã\", \"próxima terça\") contam a partir do ENVIO do e-mail, não de agora\n  const enviado = j.date ? DateTime.fromJSDate(new Date(j.date)) : null;\n  referencia = (enviado && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);\n}\n\nreturn [{\n  json: {\n    ...CONFIG,\n    texto,\n    origem,\n    canal,             // whatsapp | email | formulario: define por onde vai a resposta\n    responder_para,    // número do WhatsApp de quem mandou o pedido\n    whatsapp_phone_number_id, // ID (na Meta) do número do robô que recebeu a mensagem\n    encaminhada,\n    erro,              // preenchido quando a mensagem não dá para ler (áudio, imagem...)\n    comando,           // agenda | menu | ajuda: responde sem passar pela IA. Vazio = pedido\n    referencia_iso: referencia.toISO(),\n    referencia_extenso: referencia.setLocale('pt-BR').toFormat(\"cccc, dd 'de' LLLL 'de' yyyy, HH:mm\"),\n  },\n}];\n"
       }
     },
     {
       "id": "a0000000-0000-4000-8000-000000000005",
-      "name": "Dá para ler?",
+      "name": "É comando?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
@@ -119,6 +119,175 @@
           "conditions": [
             {
               "id": "a0000000-0000-4000-8000-000000000006",
+              "leftValue": "={{ $json.comando }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000007",
+      "name": "Pediu a agenda?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        -460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a0000000-0000-4000-8000-000000000008",
+              "leftValue": "={{ $json.comando === 'agenda' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000009",
+      "name": "Ler próximos eventos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -560
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/{{ encodeURIComponent($('Normalizar entrada').first().json.calendario_id) }}/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "timeMin",
+              "value": "={{ $now.toUTC().toISO() }}"
+            },
+            {
+              "name": "timeMax",
+              "value": "={{ $now.plus({ days: 60 }).toUTC().toISO() }}"
+            },
+            {
+              "name": "singleEvents",
+              "value": "true"
+            },
+            {
+              "name": "orderBy",
+              "value": "startTime"
+            },
+            {
+              "name": "maxResults",
+              "value": "100"
+            },
+            {
+              "name": "privateExtendedProperty",
+              "value": "naty_bot=1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000010",
+      "name": "Montar lista de eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        -560
+      ],
+      "parameters": {
+        "jsCode": "// Resposta do comando \"agenda\" no WhatsApp: os serviços marcados nos próximos 60 dias.\n// Entrada: a resposta da API do Google Agenda (só eventos do robô), ou o erro dela.\nconst resp = $input.first().json;\nconst p = $('Normalizar entrada').first().json;\nconst agora = DateTime.now().setZone(p.fuso);\nconst LIMITE = 30; // a mensagem do WhatsApp tem limite de 4096 caracteres\n\nconst texto = body => ({ type: 'text', text: { preview_url: false, body } });\n\nif (resp.error || !Array.isArray(resp.items)) {\n  return [{ json: { mensagem: texto('⚠️ Não consegui ler a agenda agora. Tente de novo em alguns minutos.' +\n    (resp.error ? '\\n\\nErro: ' + JSON.stringify(resp.error).slice(0, 200) : '')) } }];\n}\nconst inicioDe = ev => ev.start.dateTime\n  ? DateTime.fromISO(ev.start.dateTime).setZone(p.fuso)\n  : DateTime.fromISO(ev.start.date, { zone: p.fuso });\n// O Google já devolve em ordem (orderBy=startTime); ordenar de novo custa nada e não depende disso\nconst eventos = resp.items.filter(ev => ev.status !== 'cancelled' && ev.start).sort((a, b) => inicioDe(a) - inicioDe(b));\nif (!eventos.length) {\n  return [{ json: { mensagem: texto('📅 Nenhum serviço marcado nos próximos 60 dias.') } }];\n}\n\nconst linhas = [];\nlet diaAnterior = '';\nlet temVerificar = false;\nfor (const ev of eventos.slice(0, LIMITE)) {\n  const diaInteiro = !ev.start.dateTime;\n  const inicio = inicioDe(ev);\n  const dias = Math.round(inicio.startOf('day').diff(agora.startOf('day'), 'days').days);\n  const semana = inicio.setLocale('pt-BR').toFormat('cccc, dd/MM');\n  const dia = (dias === 0 ? 'Hoje · ' : dias === 1 ? 'Amanhã · ' : '') + semana.charAt(0).toUpperCase() + semana.slice(1);\n  if (dia !== diaAnterior) {\n    linhas.push('', '*' + dia + '*');\n    diaAnterior = dia;\n  }\n  const titulo = String(ev.summary || '(sem título)');\n  const verificar = titulo.startsWith('⚠️');\n  temVerificar = temVerificar || verificar;\n  // Prefixos de status: ⏳ e ✅ vêm da versão com confirmação pelo Telegram (eventos antigos)\n  const limpo = titulo.replace(/^(⏳ \\[A CONFIRMAR\\] |✅ |⚠️ VERIFICAR: )/, '');\n  linhas.push((verificar ? '⚠️ ' : '• ') + (diaInteiro ? 'dia todo' : inicio.toFormat('HH:mm')) + ' — ' + limpo);\n}\n\nlet body = '📅 *Próximos serviços* (' + eventos.length + ')\\n' + linhas.join('\\n') +\n  (eventos.length > LIMITE ? '\\n\\n… e mais ' + (eventos.length - LIMITE) + '. Veja tudo na agenda.' : '') +\n  (temVerificar ? '\\n\\n⚠️ = marcado para VERIFICAR: confira a data no evento.' : '');\nif (body.length > 4000) body = body.slice(0, 3950) + '\\n[...]';\n\nreturn [{ json: { mensagem: texto(body) } }];\n"
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000011",
+      "name": "Montar menu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        -360
+      ],
+      "parameters": {
+        "jsCode": "// Resposta dos comandos \"menu\" (com botões) e \"ajuda\" no WhatsApp.\n// Os botões chegam de volta como mensagem \"interactive\" com o id (ver 01_normalizar.js).\nconst p = $('Normalizar entrada').first().json;\n\nif (p.comando === 'ajuda') {\n  return [{ json: { mensagem: { type: 'text', text: { preview_url: false, body:\n    '➕ *Como agendar*\\n\\n' +\n    'Encaminhe para mim a mensagem do cliente (segure a mensagem → Encaminhar) ou escreva o pedido com a data e a hora. Exemplo:\\n\\n' +\n    '_Sessão do Pregão 45/2026 da Prefeitura de Campinas, dia 20/11 às 9h_\\n\\n' +\n    'Eu coloco na agenda e respondo aqui com o dia por extenso. Para ver o que está marcado, mande *agenda*.',\n  } } } }];\n}\n\nreturn [{ json: { mensagem: {\n  type: 'interactive',\n  interactive: {\n    type: 'button',\n    body: { text: 'Olá! Eu coloco os pedidos de serviço na agenda.\\n\\nEncaminhe a mensagem do cliente ou escreva o pedido com data e hora. Ou escolha:' },\n    action: {\n      buttons: [ // título: até 20 caracteres\n        { type: 'reply', reply: { id: 'ver_agenda', title: '📅 Ver agenda' } },\n        { type: 'reply', reply: { id: 'como_agendar', title: '➕ Como agendar' } },\n      ],\n    },\n  },\n} } }];\n"
+      }
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000012",
+      "name": "WhatsApp: responder comando",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        -460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/{{ $('Normalizar entrada').first().json.whatsapp_phone_number_id }}/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "whatsAppApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: $('Normalizar entrada').first().json.responder_para, ...$json.mensagem }) }}",
+        "options": {}
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "a0000000-0000-4000-8000-000000000013",
+      "name": "Dá para ler?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a0000000-0000-4000-8000-000000000014",
               "leftValue": "={{ $json.erro }}",
               "rightValue": "",
               "operator": {
@@ -135,7 +304,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000007",
+      "id": "a0000000-0000-4000-8000-000000000015",
       "name": "Montar pedido para a IA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -148,7 +317,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000008",
+      "id": "a0000000-0000-4000-8000-000000000016",
       "name": "Groq: extrair dados",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -174,7 +343,7 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000009",
+      "id": "a0000000-0000-4000-8000-000000000017",
       "name": "Validar e montar evento",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -187,7 +356,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000010",
+      "id": "a0000000-0000-4000-8000-000000000018",
       "name": "Extraiu certo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -205,7 +374,7 @@
           },
           "conditions": [
             {
-              "id": "a0000000-0000-4000-8000-000000000011",
+              "id": "a0000000-0000-4000-8000-000000000019",
               "leftValue": "={{ $json.erro }}",
               "rightValue": "",
               "operator": {
@@ -222,7 +391,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000012",
+      "id": "a0000000-0000-4000-8000-000000000020",
       "name": "Criar evento na agenda",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -246,7 +415,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000013",
+      "id": "a0000000-0000-4000-8000-000000000021",
       "name": "Responder pelo WhatsApp?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -264,7 +433,7 @@
           },
           "conditions": [
             {
-              "id": "a0000000-0000-4000-8000-000000000014",
+              "id": "a0000000-0000-4000-8000-000000000022",
               "leftValue": "={{ $('Normalizar entrada').first().json.canal === 'whatsapp' }}",
               "rightValue": "",
               "operator": {
@@ -281,7 +450,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000015",
+      "id": "a0000000-0000-4000-8000-000000000023",
       "name": "WhatsApp: agendado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -305,7 +474,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000016",
+      "id": "a0000000-0000-4000-8000-000000000024",
       "name": "E-mail: agendado",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
@@ -327,7 +496,7 @@
       "waitBetweenTries": 5000
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000017",
+      "id": "a0000000-0000-4000-8000-000000000025",
       "name": "Montar aviso de falha",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -340,7 +509,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000018",
+      "id": "a0000000-0000-4000-8000-000000000026",
       "name": "Avisar pelo WhatsApp?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -358,7 +527,7 @@
           },
           "conditions": [
             {
-              "id": "a0000000-0000-4000-8000-000000000019",
+              "id": "a0000000-0000-4000-8000-000000000027",
               "leftValue": "={{ $('Normalizar entrada').first().json.canal === 'whatsapp' }}",
               "rightValue": "",
               "operator": {
@@ -375,7 +544,7 @@
       }
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000020",
+      "id": "a0000000-0000-4000-8000-000000000028",
       "name": "WhatsApp: NÃO agendado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -399,7 +568,7 @@
       "onError": "continueErrorOutput"
     },
     {
-      "id": "a0000000-0000-4000-8000-000000000021",
+      "id": "a0000000-0000-4000-8000-000000000029",
       "name": "E-mail: NÃO agendado",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
@@ -459,7 +628,76 @@
       "main": [
         [
           {
+            "node": "É comando?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É comando?": {
+      "main": [
+        [
+          {
+            "node": "Pediu a agenda?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Dá para ler?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pediu a agenda?": {
+      "main": [
+        [
+          {
+            "node": "Ler próximos eventos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar menu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler próximos eventos": {
+      "main": [
+        [
+          {
+            "node": "Montar lista de eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar lista de eventos": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: responder comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar menu": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: responder comando",
             "type": "main",
             "index": 0
           }

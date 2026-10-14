@@ -26,8 +26,22 @@ const autorizado = numero => {
   return CONFIG.whatsapp_autorizados.some(a => [...formas(a)].some(x => de.has(x)));
 };
 
+// Comandos do WhatsApp: valem só se a mensagem for SÓ a palavra ("agenda"), para que
+// "agenda pra mim a sessão dia 20/11" continue sendo um pedido. Botões do menu chegam pelo id.
+const COMANDOS = {
+  agenda: ['agenda', 'ver agenda', 'minha agenda', 'eventos', 'proximos', 'proximos eventos', 'compromissos', 'lista'],
+  menu: ['menu', 'oi', 'ola', 'opcoes', 'inicio', 'bom dia', 'boa tarde', 'boa noite'],
+  ajuda: ['ajuda', 'como agendar', 'help'],
+};
+const BOTOES = { ver_agenda: 'agenda', como_agendar: 'ajuda' };
+const qualComando = t => {
+  const n = String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  return Object.keys(COMANDOS).find(c => COMANDOS[c].includes(n)) || '';
+};
+
 const j = $input.first().json;
-let texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_number_id = '', encaminhada = false, erro = '';
+let texto = '', origem, referencia, canal, responder_para = '', whatsapp_phone_number_id = '', encaminhada = false, erro = '', comando = '';
 
 if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
   // Veio do WhatsApp (nó "WhatsApp Trigger": um item por mensagem recebida)
@@ -46,6 +60,12 @@ if (j.messaging_product === 'whatsapp' || j.messages || j.statuses) {
   referencia = (Number(m.timestamp) && enviado.isValid ? enviado : DateTime.now()).setZone(CONFIG.fuso);
   if (m.type === 'text') {
     texto = (m.text && m.text.body) || '';
+    comando = qualComando(texto);
+  } else if (m.type === 'interactive') {
+    // Clique num botão do menu
+    const r = (m.interactive && (m.interactive.button_reply || m.interactive.list_reply)) || {};
+    comando = BOTOES[r.id] || 'menu';
+    texto = r.title || '';
   } else {
     const tipos = { audio: 'um áudio', image: 'uma imagem', document: 'um arquivo', video: 'um vídeo', sticker: 'uma figurinha' };
     erro = 'Recebi ' + (tipos[m.type] || 'uma mensagem que não é texto') +
@@ -79,6 +99,7 @@ return [{
     whatsapp_phone_number_id, // ID (na Meta) do número do robô que recebeu a mensagem
     encaminhada,
     erro,              // preenchido quando a mensagem não dá para ler (áudio, imagem...)
+    comando,           // agenda | menu | ajuda: responde sem passar pela IA. Vazio = pedido
     referencia_iso: referencia.toISO(),
     referencia_extenso: referencia.setLocale('pt-BR').toFormat("cccc, dd 'de' LLLL 'de' yyyy, HH:mm"),
   },

@@ -51,6 +51,22 @@ const whatsapp = (name, pos, texto) => ({
   // Se o WhatsApp recusar (token vencido, número fora da lista de teste...), o aviso vai por e-mail
   onError: 'continueErrorOutput',
 });
+// Resposta a um comando ("agenda", "menu"): a mensagem já vem pronta em $json.mensagem (texto ou botões).
+// Sem onError: se falhar, a execução fica com erro no n8n. Não há pedido em jogo, então não vai para o e-mail.
+const whatsappMensagem = (name, pos) => ({
+  id: id(), name, type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: pos,
+  parameters: {
+    method: 'POST',
+    url: '=' + GRAPH + '/{{ ' + NORM + '.whatsapp_phone_number_id }}/messages',
+    authentication: 'predefinedCredentialType',
+    nodeCredentialType: 'whatsAppApi',
+    sendBody: true, specifyBody: 'json',
+    jsonBody: "={{ JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: " + NORM +
+      '.responder_para, ...$json.mensagem }) }}',
+    options: {},
+  },
+  retryOnFail: true, maxTries: 2, waitBetweenTries: 3000,
+});
 // Linha extra no e-mail quando ele substitui uma resposta do WhatsApp que falhou.
 // Os nós de e-mail não têm onError: se o e-mail também falhar, a execução fica marcada com erro
 // no n8n (aparece em Executions), em vez de passar como sucesso sem ninguém ter sido avisado.
@@ -113,7 +129,36 @@ const nodes = [
     },
   },
   code('Normalizar entrada', [240, 0], '01_normalizar.js'),
-  ifNode('Dá para ler?', [460, 0], '={{ $json.erro }}', VAZIO),
+  // Comandos do WhatsApp ("agenda", "menu", "ajuda"): respondem sem passar pela IA
+  ifNode('É comando?', [460, 0], '={{ $json.comando }}', { type: 'string', operation: 'notEmpty', singleValue: true }),
+  ifNode('Pediu a agenda?', [680, -460], "={{ $json.comando === 'agenda' }}", VERDADEIRO),
+  {
+    id: id(), name: 'Ler próximos eventos', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [900, -560],
+    parameters: {
+      method: 'GET',
+      url: '=' + CAL_URL,
+      authentication: 'predefinedCredentialType',
+      nodeCredentialType: 'googleCalendarOAuth2Api',
+      sendQuery: true,
+      queryParameters: {
+        parameters: [
+          { name: 'timeMin', value: '={{ $now.toUTC().toISO() }}' },
+          { name: 'timeMax', value: '={{ $now.plus({ days: 60 }).toUTC().toISO() }}' },
+          { name: 'singleEvents', value: 'true' },
+          { name: 'orderBy', value: 'startTime' },
+          { name: 'maxResults', value: '100' },
+          { name: 'privateExtendedProperty', value: 'naty_bot=1' }, // só os eventos criados pelo robô
+        ],
+      },
+      options: {},
+    },
+    retryOnFail: true, maxTries: 2, waitBetweenTries: 3000,
+    onError: 'continueRegularOutput', // o erro segue adiante e vira "não consegui ler a agenda"
+  },
+  code('Montar lista de eventos', [1120, -560], '05_listar_eventos.js'),
+  code('Montar menu', [900, -360], '06_menu.js'),
+  whatsappMensagem('WhatsApp: responder comando', [1340, -460]),
+  ifNode('Dá para ler?', [680, 0], '={{ $json.erro }}', VAZIO),
   code('Montar pedido para a IA', [680, -100], '02_montar_requisicao.js'),
   {
     id: id(), name: 'Groq: extrair dados', type: 'n8n-nodes-base.httpRequest', typeVersion: 4.2, position: [900, -100],
@@ -151,7 +196,12 @@ const connections = {
   'WhatsApp: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Gmail: novo pedido': { main: [[link('Normalizar entrada')]] },
   'Formulário: colar pedido': { main: [[link('Normalizar entrada')]] },
-  'Normalizar entrada': { main: [[link('Dá para ler?')]] },
+  'Normalizar entrada': { main: [[link('É comando?')]] },
+  'É comando?': { main: [[link('Pediu a agenda?')], [link('Dá para ler?')]] },
+  'Pediu a agenda?': { main: [[link('Ler próximos eventos')], [link('Montar menu')]] },
+  'Ler próximos eventos': { main: [[link('Montar lista de eventos')]] },
+  'Montar lista de eventos': { main: [[link('WhatsApp: responder comando')]] },
+  'Montar menu': { main: [[link('WhatsApp: responder comando')]] },
   'Dá para ler?': { main: [[link('Montar pedido para a IA')], [link('Montar aviso de falha')]] },
   'Montar pedido para a IA': { main: [[link('Groq: extrair dados')]] },
   'Groq: extrair dados': { main: [[link('Validar e montar evento')]] },
@@ -174,7 +224,7 @@ function salvar(arquivo, name, nodes, connections) {
   }
   if (nodes.some(x => /telegram/i.test(x.type))) throw new Error('sobrou nó do Telegram em ' + arquivo);
   // Resposta pelo WhatsApp que falha precisa cair no e-mail, senão ninguém fica sabendo do pedido
-  for (const x of nodes.filter(x => x.name.startsWith('WhatsApp:') && x.type.endsWith('httpRequest'))) {
+  for (const x of nodes.filter(x => ['WhatsApp: agendado', 'WhatsApp: NÃO agendado'].includes(x.name))) {
     const erro = ((connections[x.name] || {}).main || [])[1] || [];
     if (x.onError !== 'continueErrorOutput' || !erro.some(l => l.node.startsWith('E-mail:'))) {
       throw new Error('"' + x.name + '" precisa mandar a falha para um nó de e-mail');

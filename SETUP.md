@@ -159,8 +159,10 @@ Ligue a chave **Active** (ou **Publish**) no topo de **cada um** dos dois workfl
 | Uma mensagem com `amanhã às 15h`, **encaminhada** (botão Encaminhar) | ⚠️ com o aviso de mensagem encaminhada; evento vermelho |
 | `Impugnação até 10/11, abertura das propostas 14/11 às 10h, precisamos de você na disputa dia 18/11 às 9h30` | Data principal 18/11 09:30; as outras listadas na resposta |
 | Um áudio | "🚨 NÃO agendei: … só leio mensagens de texto" |
-| `Oi, tudo bem? Depois a gente se fala` | "🚨 NÃO agendei" |
+| `Oi, tudo bem? Depois a gente se fala` | "🚨 NÃO agendei" (só "oi", sozinho, abre o menu) |
 | Qualquer mensagem de um número **fora** da lista | Nenhuma resposta |
+| `agenda` | Lista dos serviços dos próximos 60 dias, por dia |
+| `oi` | Menu com os botões *📅 Ver agenda* e *➕ Como agendar*; tocar em cada um responde de acordo |
 
 Rode os casos **mais de uma vez**: a IA pode variar. Se ela errar a data principal ou "amanhã", anote e reavalie o modelo (veja `docs/DECISOES.md`, D5).
 

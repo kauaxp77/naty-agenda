@@ -44,6 +44,12 @@ Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`). 17 nós.
 | 1b | **Gmail: novo pedido** | Gmail Trigger | Verifica a cada minuto e-mails que batem com `label:pedidos-licitacao`. Lê o e-mail completo (`simple: false`). |
 | 1c | **Formulário: colar pedido** | Form Trigger | Formulário com "Texto do pedido" e "Origem" (WhatsApp/Telefone/Outro). Reserva e testes. |
 | 2 | **Normalizar entrada** | Code (`src/01_normalizar.js`) | Unifica as três entradas em `{texto, origem, canal, responder_para, encaminhada, erro, referencia_iso, referencia_extenso}` e injeta o `CONFIG`. Detalhes abaixo. |
+| C1 | **É comando?** | IF | `comando` preenchido ("agenda", "menu", "ajuda" ou clique num botão) → C2; vazio → nó 3 (pedido). Comando só vale se a mensagem for **só** a palavra. |
+| C2 | **Pediu a agenda?** | IF | `comando === 'agenda'` → C3; senão → C5. |
+| C3 | **Ler próximos eventos** | HTTP Request (GET events) | Próximos 60 dias, `privateExtendedProperty=naty_bot=1` (só eventos do robô), até 100. Em erro, segue com o erro para C4. |
+| C4 | **Montar lista de eventos** | Code (`src/05_listar_eventos.js`) | Lista por dia ("Hoje", "Amanhã"), hora e título; ⚠️ nos `VERIFICAR`; até 30 eventos (limite de 4096 caracteres do WhatsApp). |
+| C5 | **Montar menu** | Code (`src/06_menu.js`) | "menu" → mensagem com 2 botões (`ver_agenda`, `como_agendar`); "ajuda" → texto explicando como agendar. |
+| C6 | **WhatsApp: responder comando** | HTTP Request (Graph API) | Manda a mensagem pronta (texto ou botões). Sem desvio para e-mail: se falhar, a execução fica com erro. |
 | 3 | **Dá para ler?** | IF | `erro` vazio → segue; senão (áudio, imagem…) → "Montar aviso de falha". |
 | 4 | **Montar pedido para a IA** | Code (`src/02_montar_requisicao.js`) | Monta a requisição para o Groq: prompt de sistema, esquema JSON (`strict`) e um **calendário dos próximos 60 dias** com o dia da semana de cada data. |
 | 5 | **Groq: extrair dados** | HTTP Request | `POST https://api.groq.com/openai/v1/chat/completions`. 3 tentativas com 30s de intervalo (cobre o limite por minuto do plano grátis). Em erro, **continua** com o erro no JSON, para o nó 6 tratar. |

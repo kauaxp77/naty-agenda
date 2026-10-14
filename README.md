@@ -29,6 +29,7 @@ Automação em **n8n** para a empresa de licitações da Naty. Os pedidos de ser
 | 🤖 **Extrai os dados com IA** | Órgão, tipo de serviço, nº do processo, local, contato, **data e hora**, e outras datas citadas (impugnação, abertura, disputa). |
 | 🔎 **Confere a data sem IA** | Dia da semana bate com a data? A data já passou? Está a mais de 6 meses? Tem horário? É uma mensagem encaminhada com "amanhã"? Faltam menos de 48h? Cada problema vira um alerta visível. |
 | 📅 **Agenda na hora** | Cria o evento no Google Agenda sem etapa de confirmação: **verde** quando está tudo certo, **vermelho** com `⚠️ VERIFICAR` quando há dúvida real sobre a data. |
+| 🗂️ **Comandos no WhatsApp** | **"agenda"** → lista dos serviços dos próximos 60 dias, por dia, com ⚠️ nos que estão para conferir. **"oi"/"menu"** → botões *📅 Ver agenda* e *➕ Como agendar*. Só vale se a mensagem for só a palavra; o resto é pedido. Não passa pela IA. |
 | 💬 **Responde na mesma conversa** | No WhatsApp, com a data **por extenso**, o trecho original da mensagem e os alertas. Pedido por e-mail ou formulário recebe a resposta por e-mail. |
 | ⏰ **Lembra por e-mail** | A Naty e a equipe (`emails_equipe`) recebem o convite do Google e um e-mail 2 dias e 1 dia antes, lido direto da agenda (se a data mudar na agenda, os lembretes acompanham). |
 | 🚨 **Avisa quando algo falha** | Pedido que não pôde ser agendado (áudio, falha da IA, erro do Google) gera aviso no WhatsApp ou por e-mail. WhatsApp fora → o aviso vai por e-mail. Agenda ilegível → e-mail "lembretes PARADOS". |
