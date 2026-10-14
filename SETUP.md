@@ -108,10 +108,11 @@ São duas, porque a Meta separa "receber" de "enviar":
    | Nó | Credencial |
    |---|---|
    | WhatsApp: novo pedido | WhatsApp OAuth API |
-   | WhatsApp: agendado · WhatsApp: NÃO agendado | WhatsApp API (o *Credential Type* já vem como `WhatsApp API`) |
+   | WhatsApp: agendado · WhatsApp: NÃO agendado · WhatsApp: responder comando | WhatsApp API (o *Credential Type* já vem como `WhatsApp API`) |
    | Gmail: novo pedido · E-mail: agendado · E-mail: NÃO agendado | Gmail OAuth2 |
    | Groq: extrair dados | Header Auth (`Authorization`) |
-   | Criar evento na agenda | Google Calendar OAuth2 (o *Credential Type* já vem como `Google Calendar OAuth2 API`) |
+   | Criar evento na agenda · Ler próximos eventos | Google Calendar OAuth2 (o *Credential Type* já vem como `Google Calendar OAuth2 API`) |
+   | Formulário: colar pedido | **Basic Auth** (Credentials → New → *Basic Auth*): o usuário e a senha que a Naty digita para abrir o formulário. O endereço do formulário está no código; sem senha, qualquer pessoa criaria eventos na agenda. |
 
 ## 8. Importar o workflow 2 (lembretes)
 

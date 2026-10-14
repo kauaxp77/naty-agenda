@@ -113,7 +113,10 @@ const nodes = [
   {
     id: id(), name: 'Formulário: colar pedido', type: 'n8n-nodes-base.formTrigger', typeVersion: 2.2, position: [0, 220],
     webhookId: 'b1a7e0c2-5d1f-4c8e-9a3b-7f2d6e4c1a90',
+    // O endereço do formulário está neste repositório público: sem senha, qualquer um criaria
+    // eventos na agenda. Credencial "Basic Auth" (usuário e senha que a Naty digita ao abrir).
     parameters: {
+      authentication: 'basicAuth',
       formTitle: 'Novo pedido de serviço',
       formDescription: 'Cole aqui o texto de um pedido. O robô agenda e avisa por e-mail. (O caminho normal é encaminhar o pedido ao WhatsApp do robô.)',
       formFields: {

@@ -143,3 +143,13 @@ alter role n8n set search_path = n8n;
 - Precisa de um número exclusivo para o robô, fora do app do WhatsApp.
 - Configuração na Meta (app, número, token permanente de Usuário do sistema) dá mais trabalho que um bot do Telegram.
 - Lacuna: os lembretes e o alerta "lembretes PARADOS" usam o mesmo acesso ao Google. Se ele cair, o alerta também não sai. Mitigação: publicar o app OAuth do Google (em *Testing* o login vence em 7 dias) e conferir as execuções toda semana (`OPERACAO.md`).
+
+## D14. Repositório público
+**Contexto (14/10/2026):** o repositório passa a ser público, como portfólio.
+**Decisão:**
+- Nada secreto fica no repositório: tokens, chaves e senhas estão só nas credenciais do n8n e nas variáveis do Render (conferido no histórico inteiro antes de abrir).
+- O **formulário** exige usuário e senha (Basic Auth). O endereço dele está no código, e sem senha qualquer pessoa criaria eventos na agenda e gastaria a cota da IA.
+- O gatilho do WhatsApp não precisa disso: o n8n confere a assinatura de cada mensagem com a chave secreta do app, e só os números de `whatsapp_autorizados` são atendidos.
+- Números de telefone nos exemplos e testes são fictícios. O número real que aparecia num teste foi trocado em todo o histórico.
+
+**Preço:** o endereço do n8n fica conhecido; a proteção do editor é a senha do dono e a do formulário, a Basic Auth.

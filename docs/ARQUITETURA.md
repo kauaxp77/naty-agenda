@@ -42,7 +42,7 @@ Arquivo: `workflow-naty-agenda.json` (gerado por `build.js`). 17 nós.
 |---|---|---|---|
 | 1a | **WhatsApp: novo pedido** | WhatsApp Trigger | Recebe as mensagens mandadas ao número do robô (WhatsApp Cloud API, oficial da Meta). Credencial "WhatsApp OAuth API" (ID do app + chave secreta do app). Ao **ativar** o workflow, o n8n registra o webhook no app da Meta: com o workflow inativo, nada chega. O n8n confere a assinatura `x-hub-signature-256` de cada chamada com a chave secreta. Só um WhatsApp Trigger por app da Meta. Avisos de entregue/lido são filtrados (`messageStatusUpdates` vazio). |
 | 1b | **Gmail: novo pedido** | Gmail Trigger | Verifica a cada minuto e-mails que batem com `label:pedidos-licitacao`. Lê o e-mail completo (`simple: false`). |
-| 1c | **Formulário: colar pedido** | Form Trigger | Formulário com "Texto do pedido" e "Origem" (WhatsApp/Telefone/Outro). Reserva e testes. |
+| 1c | **Formulário: colar pedido** | Form Trigger | Formulário com "Texto do pedido" e "Origem" (WhatsApp/Telefone/Outro), protegido por usuário e senha (Basic Auth). Reserva e testes. |
 | 2 | **Normalizar entrada** | Code (`src/01_normalizar.js`) | Unifica as três entradas em `{texto, origem, canal, responder_para, encaminhada, erro, referencia_iso, referencia_extenso}` e injeta o `CONFIG`. Detalhes abaixo. |
 | C1 | **É comando?** | IF | `comando` preenchido ("agenda", "menu", "ajuda" ou clique num botão) → C2; vazio → nó 3 (pedido). Comando só vale se a mensagem for **só** a palavra. |
 | C2 | **Pediu a agenda?** | IF | `comando === 'agenda'` → C3; senão → C5. |
