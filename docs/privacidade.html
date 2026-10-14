@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade</title>
+<style>
+  :root { --bg: #fff; --fg: #1f2329; --muted: #5b6470; --link: #1d5c8f; --line: #e3e7eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #14181d; --fg: #e6e9ec; --muted: #a2abb5; --link: #7fb3e0; --line: #2a3038; } }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 48px 16px; }
+  h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .5rem; }
+  .muted { color: var(--muted); }
+  a { color: var(--link); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Política de Privacidade da Agenda Naty</h1>
+  <p class="muted">Atualizada em 14 de outubro de 2026</p>
+
+  <p>A Agenda Naty é uma automação de uso interno de uma assessoria de licitações, desenvolvida e operada pela 77xp. Esta página explica que dados ela acessa, para quê e onde eles ficam.</p>
+
+  <h2>Dados do Google que o aplicativo acessa</h2>
+  <ul>
+    <li><b>Google Agenda:</b> lê os eventos do calendário configurado e cria eventos para os pedidos de serviço recebidos. Também grava nos eventos criados por ele uma marcação de quais lembretes já foram enviados.</li>
+    <li><b>Gmail:</b> envia os avisos e lembretes por e-mail. Se a entrada por e-mail estiver ligada, lê apenas os e-mails com o rótulo <code>pedidos-licitacao</code>.</li>
+  </ul>
+
+  <h2>Para que esses dados são usados</h2>
+  <p>Só para agendar os pedidos de serviço e avisar as pessoas envolvidas. Os dados não são vendidos, não são usados para publicidade e não são compartilhados com terceiros, exceto pelos serviços listados abaixo, que são necessários para o funcionamento.</p>
+
+  <h2>Serviços envolvidos</h2>
+  <ul>
+    <li><b>Groq:</b> o texto do pedido é enviado à API da Groq para extrair órgão, serviço, data e hora.</li>
+    <li><b>WhatsApp (Meta):</b> recebe os pedidos e envia as respostas no WhatsApp.</li>
+    <li><b>Render e Supabase:</b> hospedam o servidor da automação (n8n) e o banco de dados dele.</li>
+  </ul>
+
+  <h2>Onde os dados ficam e por quanto tempo</h2>
+  <p>Os eventos ficam no Google Agenda da própria empresa. As credenciais de acesso ficam no banco do servidor, criptografadas. O registro de cada execução da automação, que pode conter o texto do pedido, é apagado automaticamente depois de 72 horas.</p>
+
+  <h2>Como revogar o acesso</h2>
+  <p>O acesso ao Google pode ser revogado a qualquer momento em <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. A partir daí, a automação para de agendar e de enviar e-mails.</p>
+
+  <h2>Contato</h2>
+  <p><a href="mailto:77xpferramentas@gmail.com">77xpferramentas@gmail.com</a></p>
+
+  <p class="muted"><a href="index.html">Agenda Naty</a></p>
+</main>
+</body>
+</html>
