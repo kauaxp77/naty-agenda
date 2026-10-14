@@ -77,7 +77,14 @@ O n8n roda no seu próprio servidor (Render), então o login com Google precisa 
    - **Gmail OAuth2:** conta que recebe os pedidos e envia os avisos e lembretes.
    - **Google Calendar OAuth2:** conta **da agenda que a Naty olha no celular**.
 
-> ⚠️ **Armadilha:** com a tela de consentimento em modo **Testing**, o Google derruba o login **a cada 7 dias** e tudo para: agenda, avisos e lembretes. O próprio e-mail de alerta usa o mesmo login, então **nem o alerta sai**. Em **OAuth consent screen** (ou *Público-alvo*), clique em **Publish app** para passar a *In production*. Se o botão estiver desativado, preencha antes a tela **Branding**. Para uso próprio não precisa da verificação do Google; basta aceitar o aviso de "app não verificado" no login.
+> ⚠️ **Armadilha:** com a tela de consentimento em modo **Testing**, o Google derruba o login **a cada 7 dias** e tudo para: agenda, avisos e lembretes. O próprio e-mail de alerta usa o mesmo login, então **nem o alerta sai**. Em **Google Auth Platform → Público-alvo**, clique em **Publicar app** para passar a *Em produção*. Para uso próprio não precisa da verificação do Google; basta aceitar o aviso de "app não verificado" no login (*Avançado → Acessar*).
+>
+> Se o botão estiver desativado mesmo com a tela **Branding** preenchida, faltam os links do domínio do app, que o Google exige para publicar e a tela não aponta como obrigatórios (visto em 14/10/2026):
+> - Página inicial: `https://<usuário>.github.io/naty-agenda/` (GitHub Pages do repositório: *Settings → Pages → main, /docs*; as páginas estão em `docs/`)
+> - Política de privacidade: `https://<usuário>.github.io/naty-agenda/privacidade.html`
+> - Domínios autorizados: `<usuário>.github.io`
+>
+> **Depois de publicar, reconecte as duas credenciais do Google no n8n** (*Sign in with Google* de novo). O login feito em modo Testing continua vencendo em 7 dias; só o login novo fica sem prazo. Não envie logotipo no Branding: com logo, o Google exige verificação da marca.
 
 > **Recomendado:** crie no Google Agenda um calendário só para os serviços (ex.: "Serviços Naty") e use o ID dele nos dois workflows (Configurações do calendário → *Integrar agenda*). Assim, até eventos criados à mão recebem lembretes (passo 8).
 
