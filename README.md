@@ -121,9 +121,11 @@ Custo mensal atual: **R$ 0**. Quando o plano grátis apertar, os upgrades estão
 │   ├── 02_montar_requisicao.js            ·  W1: prompt, esquema JSON e calendário para a IA
 │   ├── 03_validar.js                      ·  W1: valida a data, decide VERIFICAR, monta evento e respostas
 │   ├── 04_aviso_falha.js                  ·  W1: monta o aviso "NÃO agendado" (WhatsApp e e-mail)
+│   ├── 05_listar_eventos.js               ·  W1: comando "agenda": próximos serviços, agrupados por dia
+│   ├── 06_menu.js                         ·  W1: comandos "menu" (botões) e "ajuda"
 │   ├── 10_lembretes_config.js             ·  W2: CONFIG + janela de busca
 │   └── 11_calcular_lembretes.js           ·  W2: decide quais lembretes enviar agora e monta os e-mails
-├── test/                                  ← testes da lógica (38 verificações)
+├── test/                                  ← testes da lógica (44 verificações)
 ├── deploy/
 │   ├── RENDER.md                          ← hospedagem atual: Render + Supabase
 │   ├── LEIA-ME.md                         ← alternativa: VPS / Oracle Cloud com Docker + Caddy
@@ -148,9 +150,10 @@ Requer Node.js 18+.
 
 ```bash
 npm install                        # instala o luxon (datas), usado só nos testes
-npm test                           # roda os 38 testes (os dois arquivos abaixo)
-node test/testar_validacao.js      # 25 testes: entradas (WhatsApp, e-mail, formulário), datas, VERIFICAR, respostas, avisos de falha
+npm test                           # roda os 44 testes (os três arquivos abaixo)
+node test/testar_validacao.js      # 26 testes: entradas (WhatsApp, e-mail, formulário), datas, VERIFICAR, respostas, avisos de falha
 node test/testar_lembretes.js      # 13 testes: lembretes por e-mail, destinatários, remarcação, n8n fora do ar
+node test/testar_comandos.js       # 5 testes: comandos "agenda"/"menu"/"ajuda", botões, lista de eventos
 npm run build                      # (= node build.js) gera workflow-naty-agenda.json e workflow-naty-lembretes.json
 ```
 
