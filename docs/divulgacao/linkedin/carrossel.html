@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Agenda por WhatsApp: carrossel</title>
+<style>
+  @page { size: 1080px 1350px; margin: 0; }
+  :root {
+    --bg: #0b1d30; --bg2: #123150; --card: rgba(255,255,255,.055); --line: rgba(255,255,255,.12);
+    --text: #f3f6f9; --muted: #a9b9c9; --accent: #e3a73f; --green: #25d366; --red: #ef5350; --blue: #5aa9ff;
+    --wa-bg: #0b141a; --wa-in: #202c33; --wa-out: #005c4b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Inter, "Noto Color Emoji", sans-serif; color: var(--text); }
+  .slide {
+    width: 1080px; height: 1350px; position: relative; overflow: hidden; break-after: page;
+    padding: 72px 88px 0;
+    background: radial-gradient(1200px 800px at 85% -10%, rgba(90,169,255,.16), transparent 60%),
+                radial-gradient(900px 700px at -10% 110%, rgba(227,167,63,.13), transparent 60%),
+                linear-gradient(160deg, var(--bg2), var(--bg) 55%);
+  }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 22px; font-weight: 700; letter-spacing: .18em; color: var(--muted); }
+  .top .brand { display: flex; align-items: center; gap: 14px; }
+  .top .brand i { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .foot { position: absolute; left: 88px; right: 88px; bottom: 64px; display: flex; justify-content: space-between; align-items: center; font-size: 24px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 26px; }
+  .foot b { color: var(--text); font-weight: 700; }
+  .swipe { color: var(--accent); font-weight: 700; }
+  .label { margin-top: 54px; font-size: 24px; font-weight: 800; letter-spacing: .2em; color: var(--accent); }
+  h1 { font-size: 78px; line-height: 1.04; font-weight: 800; letter-spacing: -.025em; margin-top: 18px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  .sub { font-size: 34px; line-height: 1.4; color: var(--muted); margin-top: 28px; }
+  .sub b { color: var(--text); }
+
+  /* chat do WhatsApp */
+  .phone { background: var(--wa-bg); border: 1px solid var(--line); border-radius: 36px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+  .phone .hd { display: flex; align-items: center; gap: 18px; padding: 22px 28px; background: #1f2c34; font-size: 27px; font-weight: 700; }
+  .phone .hd .av { width: 50px; height: 50px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .phone .hd small { display: block; font-size: 20px; font-weight: 500; color: #8696a0; }
+  .phone .bd { padding: 22px 26px 24px; display: flex; flex-direction: column; gap: 14px; }
+  .b { max-width: 82%; padding: 16px 20px; border-radius: 18px; font-size: 25px; line-height: 1.38; }
+  .b.out { align-self: flex-end; background: var(--wa-out); border-top-right-radius: 4px; }
+  .b.in { align-self: flex-start; background: var(--wa-in); border-top-left-radius: 4px; }
+  .b .fw { display: block; font-size: 19px; font-style: italic; color: #a5d6c9; margin-bottom: 4px; }
+  .b .t { font-weight: 800; }
+  .b .ok { color: #6ee7a8; font-weight: 800; }
+  .b .warn { color: #ffcf6e; font-weight: 800; }
+  .b .bad { color: #ff8a80; font-weight: 800; }
+  .btns { display: flex; gap: 10px; margin-top: 12px; }
+  .btns span { flex: 1; text-align: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.07); color: #53bdeb; font-weight: 700; font-size: 22px; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 34px; }
+  .tags span { font-size: 24px; font-weight: 700; padding: 12px 22px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 28px; padding: 26px 30px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .ico { font-size: 40px; line-height: 1; }
+  .card h3 { font-size: 29px; font-weight: 800; margin-top: 14px; line-height: 1.2; }
+  .card p { font-size: 24px; line-height: 1.38; color: var(--muted); margin-top: 8px; }
+
+  .steps { margin-top: 64px; display: flex; flex-direction: column; gap: 44px; }
+  .step { display: flex; gap: 30px; align-items: flex-start; }
+  .step .n { flex: 0 0 76px; height: 76px; border-radius: 22px; background: var(--accent); color: #1a1205; font-size: 38px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .step h3 { font-size: 36px; font-weight: 800; }
+  .step p { font-size: 27px; line-height: 1.4; color: var(--muted); margin-top: 6px; }
+
+  .row { display: flex; gap: 26px; align-items: flex-start; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .row .ico { flex: 0 0 64px; text-align: center; }
+  .row h3 { font-size: 31px; font-weight: 800; line-height: 1.25; }
+  .row p { font-size: 25px; line-height: 1.4; color: var(--muted); margin-top: 6px; }
+
+  .callout { margin-top: 40px; border-left: 8px solid var(--accent); background: rgba(227,167,63,.10); border-radius: 0 24px 24px 0; padding: 30px 36px; font-size: 33px; line-height: 1.38; font-weight: 700; }
+  .ev { border-radius: 18px; padding: 22px 26px; font-size: 26px; font-weight: 700; color: #fff; }
+  .ev small { display: block; font-size: 21px; font-weight: 500; opacity: .85; margin-top: 6px; }
+  .ev.g { background: #0b8043; } .ev.r { background: #c62828; }
+
+  .timeline { margin-top: 30px; position: relative; height: 150px; }
+  .timeline .bar { position: absolute; left: 0; right: 0; top: 54px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--accent)); }
+  .timeline .pt { position: absolute; top: 34px; width: 46px; height: 46px; margin-left: -23px; border-radius: 50%; background: var(--bg); border: 6px solid var(--blue); }
+  .timeline .pt.e { border-color: var(--accent); background: var(--accent); }
+  .timeline .tx { position: absolute; top: 96px; transform: translateX(-50%); font-size: 24px; font-weight: 800; white-space: nowrap; }
+  .timeline .tx small { display: block; font-size: 24px; margin-top: 4px; font-weight: 600; color: var(--muted); text-align: center; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 30px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 26px 24px; }
+  .stat b { display: block; font-size: 58px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .stat span { display: block; font-size: 23px; color: var(--muted); margin-top: 10px; line-height: 1.3; }
+  .stack { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+  .stack div { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 20px 24px; }
+  .stack b { display: block; font-size: 28px; font-weight: 800; }
+  .stack span { display: block; font-size: 22px; color: var(--muted); margin-top: 4px; }
+
+  .repo { margin-top: 44px; display: flex; align-items: center; gap: 22px; background: #0d1117; border: 1px solid var(--line); border-radius: 26px; padding: 30px 34px; font-size: 34px; font-weight: 800; }
+  .repo svg { flex: 0 0 56px; }
+  .repo small { display: block; font-size: 24px; font-weight: 500; color: var(--muted); margin-top: 4px; }
+  .cta { margin-top: 72px; font-size: 44px; font-weight: 800; line-height: 1.2; }
+  .cta em { font-style: normal; color: var(--accent); }
+  .me { margin-top: 56px; display: flex; align-items: center; gap: 26px; }
+  .me .av { flex: 0 0 140px; width: 140px; height: 140px; border-radius: 50%; border: 5px solid var(--accent); background: url("foto/avatar.jpg") no-repeat; background-size: 300px 300px; background-position: -88px -22px; box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+  .me b { display: block; font-size: 36px; font-weight: 800; }
+  .me span { display: block; font-size: 25px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<!-- 1. Capa -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>01 / 09</span></div>
+  <h1 style="margin-top:64px">Do WhatsApp<br>para a agenda.<br><em>Sem digitar nada.</em></h1>
+  <p class="sub">Uma automação com IA que transforma pedidos de serviço encaminhados no WhatsApp em eventos no <b>Google Agenda</b>, conferindo a data antes de agendar.</p>
+  <div class="phone" style="margin-top:46px">
+    <div class="hd"><div class="av">🤖</div><div>Agenda<small>robô · online</small></div></div>
+    <div class="bd">
+      <div class="b out"><span class="fw">↪ Encaminhada</span>Bom dia! Preciso de representante na sessão do Pregão 45/2026 da Prefeitura de Campinas, dia 20/11 às 9h.</div>
+      <div class="b in"><span class="ok">✅ Agendado</span><br>Sessão Pregão 45/2026 – Pref. Campinas<br>📅 <span class="t">SEXTA-FEIRA, 20 DE NOVEMBRO às 09:00</span></div>
+    </div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 2. Problema -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>02 / 09</span></div>
+  <div class="label">O PROBLEMA</div>
+  <h1>Um serviço deixou de ser feito porque <em>a data foi lida errada.</em></h1>
+  <div style="margin-top:50px">
+    <div class="row"><div class="ico">💬</div><div><h3>Os pedidos chegam espalhados no WhatsApp</h3><p>De clientes diferentes, no meio de outras conversas.</p></div></div>
+    <div class="row"><div class="ico">✍️</div><div><h3>Alguém precisa passar cada um para a agenda</h3><p>Lendo o texto, achando a data e digitando à mão.</p></div></div>
+    <div class="row"><div class="ico">⚠️</div><div><h3>Um dia ou uma hora errados viram serviço perdido</h3><p>E ninguém percebe até ser tarde.</p></div></div>
+  </div>
+  <div class="callout">O objetivo do projeto: nenhum pedido pode sumir ou ficar com a data errada <span style="color:var(--accent)">sem que alguém seja avisado.</span></div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 3. Como funciona -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>03 / 09</span></div>
+  <div class="label">COMO FUNCIONA</div>
+  <h1>Quatro passos, <em>em segundos.</em></h1>
+  <div class="steps">
+    <div class="step"><div class="n">1</div><div><h3>Encaminhe o pedido</h3><p>Segure a mensagem do cliente → Encaminhar → Agenda. Ou escreva o pedido com data e hora.</p></div></div>
+    <div class="step"><div class="n">2</div><div><h3>A IA lê a mensagem</h3><p>Extrai serviço, órgão, processo, data, hora, local e contato, num JSON com esquema estrito.</p></div></div>
+    <div class="step"><div class="n">3</div><div><h3>O código confere a data</h3><p>Regras fixas, testadas, que não dependem da IA. Na dúvida, o evento é marcado para conferir.</p></div></div>
+    <div class="step"><div class="n">4</div><div><h3>Agenda e responde</h3><p>O evento entra no Google Agenda e a resposta volta na mesma conversa, com o dia por extenso.</p></div></div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 4. Conferências -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>04 / 09</span></div>
+  <div class="label">A IA NÃO DECIDE SOZINHA</div>
+  <h1>A IA lê. <em>O código confere.</em></h1>
+  <div class="grid2" style="margin-top:48px">
+    <div class="card"><div class="ico">📅</div><h3>O dia da semana bate com a data?</h3><p>"Segunda, 19/11", mas 19/11 é quinta.</p></div>
+    <div class="card"><div class="ico">⏪</div><h3>A data já passou?</h3><p>Ou está a mais de 6 meses?</p></div>
+    <div class="card"><div class="ico">🕘</div><h3>Tem horário?</h3><p>Sem hora, entra como dia inteiro e com alerta.</p></div>
+    <div class="card"><div class="ico">↪️</div><h3>"Amanhã" numa mensagem encaminhada?</h3><p>O WhatsApp não diz quando ela foi escrita.</p></div>
+  </div>
+  <div class="grid2" style="margin-top:30px">
+    <div class="ev g">Sessão Pregão 45/2026<small>Sem dúvida: evento verde</small></div>
+    <div class="ev r">⚠️ VERIFICAR: Visita técnica<small>Com dúvida: evento vermelho, com o motivo</small></div>
+  </div>
+  <p class="sub" style="margin-top:24px">Na dúvida, nasce vermelho. <b>Nunca deixa de existir.</b></p>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 5. Respostas e comandos -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>05 / 09</span></div>
+  <div class="label">NA MESMA CONVERSA</div>
+  <h1>Responde na hora. <em>E atende comandos.</em></h1>
+  <div class="phone" style="margin-top:34px">
+    <div class="hd"><div class="av">🤖</div><div>Agenda<small>robô · online</small></div></div>
+    <div class="bd">
+      <div class="b in"><span class="warn">⚠️ Agendei, mas CONFIRA a data</span><br>A mensagem diz segunda-feira, mas 19/11 cai numa quinta.</div>
+      <div class="b out">agenda</div>
+      <div class="b in"><span class="t">📅 Próximos serviços (3)</span><br><span class="t">Hoje · Quinta, 29/10</span><br>• 14:00 Visita técnica – Sabesp<br><span class="t">Sexta, 20/11</span><br>• 09:00 Sessão Pregão 45/2026</div>
+      <div class="b out">oi</div>
+      <div class="b in">Olá! Encaminhe o pedido do cliente ou escolha:<div class="btns"><span>📅 Ver agenda</span><span>➕ Como agendar</span></div></div>
+    </div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 6. Lembretes -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>06 / 09</span></div>
+  <div class="label">LEMBRETES</div>
+  <h1>Ninguém <em>esquece</em> o serviço.</h1>
+  <div class="timeline" style="margin-top:40px">
+    <div class="bar"></div>
+    <div class="pt" style="left:4%"></div><div class="tx" style="left:4%; transform:translateX(-22%)">2 dias<small>📱 + ✉️</small></div>
+    <div class="pt" style="left:30%"></div><div class="tx" style="left:30%">1 dia<small>📱 + ✉️</small></div>
+    <div class="pt" style="left:56%"></div><div class="tx" style="left:56%">12 h<small>📱</small></div>
+    <div class="pt" style="left:76%"></div><div class="tx" style="left:76%">6 h<small>📱</small></div>
+    <div class="pt e" style="left:95%"></div><div class="tx" style="left:95%; transform:translateX(-78%)">Serviço<small>&nbsp;</small></div>
+  </div>
+  <div class="grid2" style="margin-top:44px">
+    <div class="card"><div class="ico">📱</div><h3>Alarme no celular</h3><p>Do responsável, pelo Google Agenda: 2 dias, 1 dia, 12 h e 6 h antes.</p></div>
+    <div class="card"><div class="ico">✉️</div><h3>E-mail para a equipe</h3><p>2 dias e 1 dia antes, e o convite do Google na hora em que agenda.</p></div>
+    <div class="card"><div class="ico">🔄</div><h3>Mudou a data? Acompanha</h3><p>A agenda é a fonte da verdade: os lembretes seguem a data nova.</p></div>
+    <div class="card"><div class="ico">1️⃣</div><h3>Nunca chega duplicado</h3><p>Cada envio fica marcado no próprio evento.</p></div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 7. Falhas -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>07 / 09</span></div>
+  <div class="label">QUANDO ALGO FALHA</div>
+  <h1>Falha calada é pior que falha. <em>Alguém sempre fica sabendo.</em></h1>
+  <div style="margin-top:36px">
+    <div class="row"><div class="ico">🚨</div><div><h3>Não deu para agendar</h3><p>Áudio, pedido sem data, IA fora do ar: aviso na hora, com o texto original.</p></div></div>
+    <div class="row"><div class="ico">📭</div><div><h3>O WhatsApp recusou a resposta</h3><p>O mesmo aviso vai por e-mail, com o erro.</p></div></div>
+    <div class="row"><div class="ico">📨</div><div><h3>A Meta aceitou, mas não entregou</h3><p>A falha chega depois, num status do webhook. Vira e-mail com o motivo.</p></div></div>
+    <div class="row"><div class="ico">⏸️</div><div><h3>Os lembretes pararam</h3><p>Alerta por e-mail, no máximo uma vez por hora.</p></div></div>
+    <div class="row"><div class="ico">💤</div><div><h3>O servidor caiu</h3><p>Um monitor externo chama o servidor a cada 5 minutos e avisa.</p></div></div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 8. Stack e custo -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>08 / 09</span></div>
+  <div class="label">POR DENTRO</div>
+  <h1>Infraestrutura: <em>R$ 0 por mês</em> nos planos gratuitos.</h1>
+  <div class="stack">
+    <div><b>n8n</b><span>Automação auto-hospedada, em Docker</span></div>
+    <div><b>Render + Supabase</b><span>Servidor e banco Postgres</span></div>
+    <div><b>Groq (LLM)</b><span>Extração em JSON com esquema estrito</span></div>
+    <div><b>WhatsApp Cloud API</b><span>A oficial da Meta</span></div>
+    <div><b>Google Agenda + Gmail</b><span>Eventos, convites e e-mails</span></div>
+    <div><b>JavaScript</b><span>Lógica fora do n8n, testável</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>47</b><span>testes automatizados</span></div>
+    <div class="stat"><b>3</b><span>entradas: WhatsApp, Gmail e formulário</span></div>
+    <div class="stat"><b>0</b><span>senhas ou tokens no repositório</span></div>
+  </div>
+  <p class="sub" style="font-size:28px; margin-top:28px">Cada mensagem tem a assinatura da Meta conferida, só números autorizados são atendidos e o formulário de reserva pede senha.</p>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span class="swipe">arraste →</span></div>
+</section>
+
+<!-- 9. CTA -->
+<section class="slide">
+  <div class="top"><span class="brand"><i></i>AGENDA POR WHATSAPP</span><span>09 / 09</span></div>
+  <div class="label">CÓDIGO ABERTO</div>
+  <h1>Pronto para instalar <em>em outras empresas.</em></h1>
+  <p class="sub">Com guia de instalação do zero, roteiro de entrega para o cliente e guia de uso em PDF.</p>
+  <div class="repo">
+    <svg viewBox="0 0 16 16" width="56" height="56" fill="#f3f6f9"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+    <div>github.com/kauaxp77/Automacao_n8n<small>n8n · IA · WhatsApp · Google Agenda</small></div>
+  </div>
+  <p class="cta">Sua empresa recebe pedidos pelo WhatsApp? <em>Vamos conversar.</em></p>
+  <div class="me">
+    <div class="av" role="img" aria-label="Foto de Wendson Kauã"></div>
+    <div><b>Wendson Kauã</b><span>Desenvolvedor · automações e sistemas</span><span>linkedin.com/in/wendson-kaua</span></div>
+  </div>
+  <div class="foot"><span><b>Wendson Kauã</b> · github.com/kauaxp77</span><span>💬 comente ou chame no direct</span></div>
+</section>
+
+</body>
+</html>

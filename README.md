@@ -134,7 +134,8 @@ Custo mensal atual: **R$ 0**. Quando o plano grátis apertar, os upgrades estão
 └── docs/
     ├── ARQUITETURA.md                     ← cada nó, estados do evento, algoritmo dos lembretes
     ├── OPERACAO.md                        ← o que fazer quando chega um 🚨, logs, backup, custos
-    └── DECISOES.md                        ← por que n8n, Groq, WhatsApp oficial, Render... e o que foi descartado
+    ├── DECISOES.md                        ← por que n8n, Groq, WhatsApp oficial, Render... e o que foi descartado
+    └── divulgacao/linkedin/               ← carrossel e banner do projeto para o LinkedIn, com o texto do post
 ```
 
 ## Colocar no ar

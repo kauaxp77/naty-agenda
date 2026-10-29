@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Agenda por WhatsApp: banner</title>
+<style>
+  :root { --bg: #0b1d30; --bg2: #123150; --line: rgba(255,255,255,.12); --text: #f3f6f9; --muted: #a9b9c9; --accent: #e3a73f; --green: #25d366; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, "Noto Color Emoji", sans-serif; color: var(--text); }
+  .banner { width: 1200px; height: 627px; position: relative; overflow: hidden; display: flex; gap: 48px; padding: 56px 64px;
+    background: radial-gradient(900px 600px at 90% -20%, rgba(90,169,255,.18), transparent 60%),
+                radial-gradient(700px 500px at -10% 120%, rgba(227,167,63,.16), transparent 60%),
+                linear-gradient(160deg, var(--bg2), var(--bg) 60%); }
+  .left { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .kicker { font-size: 17px; font-weight: 800; letter-spacing: .2em; color: var(--accent); display: flex; align-items: center; gap: 10px; }
+  .kicker i { width: 11px; height: 11px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  h1 { font-size: 54px; line-height: 1.05; font-weight: 800; letter-spacing: -.02em; margin-top: 18px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  ul { list-style: none; margin-top: 24px; display: grid; gap: 12px; }
+  li { font-size: 21px; color: var(--muted); display: flex; gap: 12px; align-items: baseline; }
+  li b { color: var(--text); }
+  .foot { margin-top: auto; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; font-size: 18px; color: var(--muted); }
+  .foot b { color: var(--text); font-size: 20px; }
+  .chip { font-size: 16px; font-weight: 700; padding: 7px 14px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--text); }
+  .phone { flex: 0 0 420px; align-self: center; background: #0b141a; border: 1px solid var(--line); border-radius: 30px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .hd { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: #1f2c34; font-size: 19px; font-weight: 700; }
+  .av { width: 36px; height: 36px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .hd small { display: block; font-size: 14px; font-weight: 500; color: #8696a0; }
+  .bd { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .b { max-width: 88%; padding: 11px 14px; border-radius: 14px; font-size: 17px; line-height: 1.38; }
+  .out { align-self: flex-end; background: #005c4b; border-top-right-radius: 4px; }
+  .in { align-self: flex-start; background: #202c33; border-top-left-radius: 4px; }
+  .fw { display: block; font-size: 13px; font-style: italic; color: #a5d6c9; margin-bottom: 2px; }
+  .ok { color: #6ee7a8; font-weight: 800; } .t { font-weight: 800; }
+</style></head><body>
+<div class="banner">
+  <div class="left">
+    <div class="kicker"><i></i>AUTOMAÇÃO COM IA · N8N</div>
+    <h1>Do WhatsApp<br>para a agenda.<br><em>Sem digitar nada.</em></h1>
+    <ul>
+      <li>🤖 <span><b>A IA lê o pedido</b> e extrai serviço, data e hora</span></li>
+      <li>🔎 <span><b>O código confere a data:</b> na dúvida, nasce vermelho</span></li>
+      <li>⏰ <span><b>Lembretes</b> no celular e por e-mail para a equipe</span></li>
+      <li>🚨 <span><b>Avisa quando algo falha,</b> em vez de falhar calado</span></li>
+    </ul>
+    <div class="foot"><b>Wendson Kauã</b><span>github.com/kauaxp77/Automacao_n8n</span></div>
+  </div>
+  <div class="phone">
+    <div class="hd"><div class="av">🤖</div><div>Agenda<small>robô · online</small></div></div>
+    <div class="bd">
+      <div class="b out"><span class="fw">↪ Encaminhada</span>Preciso de representante na sessão do Pregão 45/2026 da Prefeitura de Campinas, dia 20/11 às 9h.</div>
+      <div class="b in"><span class="ok">✅ Agendado</span><br>Sessão Pregão 45/2026<br>📅 <span class="t">SEXTA-FEIRA, 20/11 às 09:00</span></div>
+      <div class="b out">agenda</div>
+      <div class="b in"><span class="t">📅 Próximos serviços (2)</span><br>• 29/10 14:00 Visita técnica – Sabesp<br>• 20/11 09:00 Sessão Pregão 45/2026</div>
+    </div>
+  </div>
+</div>
+</body></html>
